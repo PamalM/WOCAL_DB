@@ -3,10 +3,12 @@ from pymongo.errors import ConnectionFailure
 from pymongo.errors import OperationFailure
 import tkinter as tk
 from tkinter import font
-import getpass
+from tkcalendar import Calendar
 import platform
 import os
 import matplotlib.pyplot as plt
+import time
+import datetime
 
 
 class WoCal:
@@ -18,6 +20,8 @@ class WoCal:
         self._username = None
         self._password = None
         self._url = None
+
+        self.currentDate = datetime.datetime.now()
 
         # Method signs user into DB with username/password provided within entry fields.
         def signIn():
@@ -130,53 +134,42 @@ class WoCal:
             else:
                 self._rememberMeCheckBox.config(text='Stay signed-In?', bg='slategray3')
 
-        uMachine = platform.system()
-        filename = None
-        fileExists = None
-        if uMachine == 'Darwin' or 'Linux':
-            filename = os.getcwd() + '/login.txt'
-            fileExists = os.path.exists(filename)
-        elif uMachine == 'Windows':
-            filename = os.getcwd() + '\\login.txt'
-            fileExists = os.path.exists(filename)
-        else:
-            fileExists = None
-            filename = None
+        # Determine user machine OS, and check if login.text file exists.
+        self.uMachine = platform.system()
+        self.filename = None
+        self.fileExists = None
+        if self.uMachine == 'Darwin' or 'Linux':
+            self.filename = os.getcwd() + '/login.txt'
+            self.fileExists = os.path.exists(self.filename)
+        elif self.uMachine == 'Windows':
+            self.filename = os.getcwd() + '\\login.txt'
+            self.fileExists = os.path.exists(self.filename)
 
         self.master = master
-
-        # If login.txt file exists, than bypass login.
-        if fileExists:
-            with open(filename, "r") as file:
+        print('[Awaiting user sign-in for DB] ...')
+        # If (login.txt) file exists in proj. directory, than bypass login; Else direct user to db login screen.
+        if self.fileExists:
+            with open(self.filename, "r") as file:
                 for line in file:
                     credentials = line.split(':')
             self._username = credentials[0]
             self._password = credentials[1]
-            print('[Successful login for user: {0}, into the Database]'.format(self._username))
+            print('[Successful login for {0}, into the Database]'.format(self._username))
             self._url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self._username, self._password)
             self.client = pym.MongoClient(self._url)
             self.client.admin.command('ismaster')
             self.db = self.client['WOCAL']
             self.methodsScreen(self.master)
         else:
-            print('[Awaiting user sign-in for DB] ...')
-            # Login Window for MongoDB cluster.
-
             '''Top Frame'''
             self._topFrame = tk.Frame(self.master, bg='gray25')
-            self._topFrame.grid_columnconfigure(0, weight=1)
-            self._topFrame.grid_rowconfigure(0, weight=1)
-            self._topFrame.grid_rowconfigure(1, weight=1)
             self._font1 = font.Font(self._topFrame, family='HELVETICA', size=30, weight='bold', underline=True)
             self._topLabel1 = tk.Label(self._topFrame, text='Sign Into Database:', font=self._font1, bd=4, bg='lavender', fg='gray25')
-            self._topLabel1.grid(row=0, column=0, sticky='nsew', padx=18, pady=(14, 0))
-            self._font2 = font.Font(self._topFrame, family='TIMES NEW ROMAN', size=16, weight='normal')
-            self._topLabel2 = tk.Label(self._topFrame, text='Register for an account by emailing:\nmangatpamal@gmail.com', font=self._font2, bd=4, bg='lavender', fg='gray25')
-            self._topLabel2.grid(row=1, column=0, sticky='nsew', padx=18, pady=(0, 14))
+            self._topLabel1.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
             self._topFrame.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
 
             '''Middle Frame'''
-            self._middleFrame = tk.Frame(self.master, bg='slategray3', relief='raised')
+            self._middleFrame = tk.Frame(self.master, bg='slategray3', relief='raised', bd=4, highlightbackground='gray25')
             self._middleFrame.grid_columnconfigure(0, weight=1)
             self._middleFrame.grid_rowconfigure(0, weight=1)
             self._middleFrame.grid_rowconfigure(1, weight=1)
@@ -206,14 +199,9 @@ class WoCal:
 
             '''Bottom Frame'''
             self._bottomFrame = tk.Frame(self.master, bg='gray25')
-            self._bottomFrame.grid_columnconfigure(0, weight=1)
-            self._bottomFrame.grid_rowconfigure(0, weight=1)
-            self._bottomFrame.grid_rowconfigure(1, weight=1)
             self._font3 = font.Font(self._topFrame, family='TIMES NEW ROMAN', size=10)
-            self._bottomLabel = tk.Label(self._bottomFrame, text='Powered through MongoDB\nFurther resources provided by wger\'s REST API.', font=self._font3, bg='lavender')
-            self._bottomLabel.grid(row=0, column=0, padx=18, pady=(14, 0), sticky='nsew')
-            self._bottomLabel2 = tk.Label(self._bottomFrame, text='Created by Pamal Mangat', font=self._font3, bg='lavender')
-            self._bottomLabel2.grid(row=1, column=0, padx=18, pady=(0, 14), sticky='nsew')
+            self._bottomLabel = tk.Label(self._bottomFrame, text='Powered through MongoDB\nCreated by Pamal Mangat', font=self._font3, bg='lavender')
+            self._bottomLabel.pack(fill=tk.BOTH, padx=18, pady=10, expand=True)
             self._bottomFrame.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
 
             # Window Attributes.
@@ -223,9 +211,285 @@ class WoCal:
             self.master.bind('<Return>', lambda cmd: signIn())
             self.master.mainloop()
 
+    # Method presents user with all methods and actions that can be performed within the program; (Main-Menu)
     def methodsScreen(self, master):
+
+        def terminal(tag):
+            self.master.destroy()
+            self.master.quit()
+            self.root = tk.Tk()
+            if tag == 1:
+                self.recordCalories(self.root)
+            elif tag == 3:
+                self.recordWorkout(self.root)
+            else:
+                print(tag)
+            self.root.mainloop()
+
+        # Method deletes login.text file from cwd if it exits, and directs user back to db log-in window.
+        def logOff():
+            self.master.destroy()
+            self.master.quit()
+            if self.fileExists:
+                os.remove(self.filename)
+            time.sleep(1)
+            print("[" + self._username + " has been logged out of the database]")
+            self.root = tk.Tk()
+            self.__init__(self.root)
+            self.root.mainloop()
+
         self.master = master
+
+        '''Top Frame'''
+        self._topFrame = tk.Frame(self.master, bg='gray25', relief='raised', bd=4, highlightbackground='gray30')
+        self._topFrame.grid_rowconfigure(0, weight=1)
+        self._topFrame.grid_columnconfigure(0, weight=1)
+        self._topFrame.grid_columnconfigure(1, weight=1)
+        self._topFrame.grid_rowconfigure(0, weight=1)
+        self._topFrame.grid_columnconfigure(0, weight=1)
+        self._topFrame.grid_columnconfigure(1, weight=1)
+        self._font1 = font.Font(self._topFrame, family='Times NEW ROMAN', size=20, weight='bold', underline=False)
+        self._welcomeLabel = tk.Label(self._topFrame, text='Welcome,\n{0}'.format(self._username), font=self._font1, anchor='w', bg='gray25', fg='ivory')
+        self._welcomeLabel.grid(row=0, column=0, sticky='ew', padx=18, pady=2)
+        self._logOffButton = tk.Button(self._topFrame, text='LogOff', font='HELVETICA 18 bold', relief='raised', bd=2, highlightbackground='indianred', command=lambda: logOff())
+        self._logOffButton.grid(row=0, column=1, sticky='nsew', padx=18, pady=8)
+        self._topFrame.pack(fill=tk.BOTH, expand=False, padx=18, pady=(14, 0))
+
+        '''Methods Frame'''
+        self._methodFrame = tk.Frame(self.master, bg='snow3', relief='raised', bd=4, highlightbackground='gray30')
+        self._methodFrame.grid_columnconfigure(0, weight=1)
+        self._methodFrame.grid_columnconfigure(1, weight=1)
+        self._methodFrame.grid_rowconfigure(0, weight=1)
+        self._methodFrame.grid_rowconfigure(1, weight=1)
+        self._font2 = font.Font(self._topFrame, family='TIMES', size=22, weight='bold')
+        self._recordCaloriesButton = tk.Button(self._methodFrame, text='RECORD\nCALORIES', font=self._font2, highlightbackground='firebrick4', relief='flat')
+        self._recordCaloriesButton.config(command=lambda: terminal(1))
+        self._recordCaloriesButton.grid(row=0, column=0, sticky='nsew', padx=(18, 2), pady=(14, 4))
+        self._trackCaloriesButton = tk.Button(self._methodFrame, text='VIEW\nCALORIES\nLOG', font=self._font2, highlightbackground='springgreen4', relief='flat')
+        self._trackCaloriesButton.config(command=lambda: terminal(2))
+        self._trackCaloriesButton.grid(row=0, column=1, sticky='nsew', padx=(2, 18), pady=(14, 4))
+        self._recordWorkoutButton = tk.Button(self._methodFrame, text='RECORD\nWORKOUT', font=self._font2, highlightbackground='mediumpurple2', relief='flat')
+        self._recordWorkoutButton.config(command=lambda: terminal(3))
+        self._recordWorkoutButton.grid(row=1, column=0, sticky='nsew', padx=(18, 2), pady=(4, 14))
+        self._trackWorkoutButton = tk.Button(self._methodFrame, text='VIEW\nWORKOUT\nLOG', font=self._font2, highlightbackground='lightpink2', relief='flat')
+        self._trackWorkoutButton.config(command=lambda: terminal(4))
+        self._trackWorkoutButton.grid(row=1, column=1, sticky='nsew', padx=(2, 18), pady=(4, 14))
+        self._methodFrame.pack(fill=tk.BOTH, expand=True, padx=18, pady=8)
+
         self.master.title('WOCAL_DB')
+        self.master.focus_set()
+        self.master.config(bg='royalblue2')
+        self.master.minsize(600, 400)
+        self.master.mainloop()
+
+    def recordCalories(self, master):
+
+        self._amount = None
+        self._desc = None
+        self._date = None
+        self.calPerDay = self.db['calPerDay']
+
+        # [4] Styling methods binded for 2 entries within frame.
+        def amountEntry_FocusIn(event):
+            if self._amountEntry.get() == 'Enter Calorie Amount':
+                self._amountEntry.delete(0, tk.END)
+                self._amountEntry.insert(0, '')
+                self._amountEntry.config(bg='mistyrose', fg='gray25')
+
+        def amountEntry_FocusOut(event):
+            if self._amountEntry.get() == '':
+                self._amountEntry.insert(0, 'Enter Calorie Amount')
+            self._amountEntry.config(bg='bisque', fg='gray25')
+
+        def descBox_FocusIn(event):
+            if self._descEntry.get() == 'Enter Desc. (optional)':
+                self._descEntry.delete(0, tk.END)
+                self._descEntry.insert(0, '')
+                self._descEntry.config(bg='mistyrose', fg='gray25')
+
+        def descBox_FocusOut(event):
+            if self._descEntry.get() == '':
+                self._descEntry.insert(0, 'Enter Desc. (optional)')
+            self._descEntry.config(bg='bisque', fg='gray25')
+
+        # Binded method updates label underneath calendar whenever date is selected.
+        def updateDate():
+            self._getSelectedDate = self._cal.selection_get()
+            self._topLabel2.config(text=self._getSelectedDate)
+            self._dayTotal = updateDayTotal()
+            self._dayTotalLabel.config(text='Day Total: {0}'.format(self._dayTotal))
+            self.master.after(1, self.master.update())
+
+        # Method binded to backButton.
+        def back():
+            self.master.destroy()
+            self.master.quit()
+            self.root = tk.Tk()
+            self.methodsScreen(self.root)
+            self.root.mainloop()
+
+        # Method returns the summed value of calories for the selected day.
+        def updateDayTotal():
+            self._dayTotal = 0.0
+            for self.records in self.calPerDay.find({'date': str(self._cal.selection_get())}):
+                self._dayTotal += self.records['amount']
+            return float(self._dayTotal)
+
+        # Method inserts window entries into database.
+        def insertDocument():
+            try:
+                # Attempt to insert document.
+                if self._amountEntry != 'Enter Calorie Amount:':
+                    if str(self._descEntry.get()) == 'Enter Desc. (optional)':
+                        self._desc = ''
+                    else:
+                        self._desc = str(self._descEntry.get())
+                    self._query = {'date': str(self._cal.selection_get()), 'amount': float(self._amountEntry.get()), 'desc': self._desc}
+                    self._insert = self.calPerDay.insert_one(self._query)
+
+                    # Transition back to main-menu.
+                    self.master.destroy()
+                    self.master.quit()
+                    self.root = tk.Tk()
+                    self.methodsScreen(self.root)
+                    self.root.mainloop()
+
+            except ValueError:
+                self._alert = tk.Tk()
+                self._alert.title('INSERT ERROR')
+
+                self._topLabel = tk.Label(self._alert, text='Error Encountered whilst inserting document.', fg='bisque', bg='gray25')
+                self._topLabel.pack(fill=tk.X, padx=18, pady=10)
+
+                self._alert.minsize(300, 150)
+                self._alert.resizable(False, False)
+                self._alert.mainloop()
+
+        self.master = master
+
+        '''Top Frame'''
+        # Initial update for first time user logs into window. Label must be updated prior to entry.
+        self.dayTotal = 0.0
+        for records in self.calPerDay.find({'date': '{0}-{1}-{2}'.format(self.currentDate.year, self.currentDate.month, self.currentDate.day)}):
+            self.dayTotal += float(records['amount'])
+        # Calendar for user to pick date of record for calories.
+        self._topFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
+        self._font1 = font.Font(self._topFrame, family='TIMES', size=22, weight='bold', underline=True)
+        self._topLabel = tk.Label(self._topFrame, text='SELECT DATE', bg='gray25', fg='ivory', font=self._font1)
+        self._topLabel.pack(padx=18, pady=(14, 0), fill=tk.BOTH)
+        self._cal = Calendar(self._topFrame, selectmode='day', year=self.currentDate.year, month=self.currentDate.month, day=self.currentDate.day)
+        self._cal.config(firstweekday='sunday', showweeknumbers=False, foreground='firebrick4', background='ivory', selectforeground='orange', showothermonthdays=False)
+        self._cal.pack(padx=30, fill=tk.BOTH, expand=True)
+        self._dayTotalLabel = tk.Label(self._topFrame, text='Day Total: {0}'.format(updateDayTotal()), font='TIMES 14 bold', bg='lavender')
+        self._dayTotalLabel.pack(fill=tk.Y, padx=25, pady=(14, 0))
+        self._font2 = font.Font(self._topFrame, family='TIMES', size=22, weight='bold', underline=True)
+        self._topLabel2 = tk.Label(self._topFrame, text=self._cal.selection_get(), bg='lightcyan', fg='gray25', font=self._font2)
+        self._topLabel2.pack(padx=18, pady=14, fill=tk.Y)
+        self._topFrame.pack(fill=tk.BOTH, padx=18, pady=(8, 4), expand=True)
+
+        '''Middle Frame'''
+        self._middleFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
+        self._amountEntry = tk.Entry(self._middleFrame, justify='center', font='HELVETICA 16 bold', bg='bisque', fg='gray25')
+        self._amountEntry.pack(padx=20, fill=tk.X, expand=True, pady=(14, 0))
+        self._amountEntry.insert(0, 'Enter Calorie Amount')
+        self._font3 = font.Font(self._middleFrame, family='TIMES NEW ROMAN', size=16, weight='normal')
+        self._descEntry = tk.Entry(self._middleFrame, justify='center', font=self._font3, bg='bisque', fg='gray25')
+        self._descEntry.pack(padx=18, pady=14, fill=tk.BOTH)
+        self._descEntry.insert(0, 'Enter Desc. (optional)')
+        self._middleFrame.pack(fill=tk.BOTH, padx=18, expand=True, pady=10)
+
+        '''Bottom Frame'''
+        self._bottomFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
+        self._bottomFrame.grid_rowconfigure(0, weigh=1)
+        self._bottomFrame.grid_rowconfigure(1, weight=1)
+        self._bottomFrame.grid_columnconfigure(0, weight=1)
+        self._addButton = tk.Button(self._bottomFrame, text='INSERT', font='HELVETICA 16 bold', highlightbackground='mediumaquamarine', fg='snow', relief='raised')
+        self._addButton.config(command=lambda: insertDocument())
+        self._addButton.grid(row=0, column=0, sticky='nsew', padx=18, pady=4)
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 16 bold', command=lambda: back(), highlightbackground='indianred', fg='snow', relief='raised')
+        self._backButton.grid(row=1, column=0, sticky='nsew', padx=18, pady=4)
+        self._bottomFrame.pack(fill=tk.BOTH, padx=18, pady=(0, 8), expand=True)
+
+        self.master.config(bg='firebrick4')
+        self.master.title('RECORD CALORIES')
+        self.master.bind('<<CalendarSelected>>', lambda cmd: updateDate())
+        self._amountEntry.bind('<FocusIn>', amountEntry_FocusIn)
+        self._amountEntry.bind('<FocusOut>', amountEntry_FocusOut)
+        self._descEntry.bind('<FocusIn>', descBox_FocusIn)
+        self._descEntry.bind('<FocusOut>', descBox_FocusOut)
+        self.master.minsize(500, 550)
+        self.master.mainloop()
+
+    def recordWorkout(self, master):
+
+        # Method inserts the workout details into DB.
+        def insertDocument():
+            print('InsertDocument')
+
+        # Method binded to backButton.
+        def back():
+            self.master.destroy()
+            self.master.quit()
+            self.root = tk.Tk()
+            self.methodsScreen(self.root)
+            self.root.mainloop()
+
+        # Binded method updates label underneath calendar whenever date is selected.
+        def updateDate():
+            self._getSelectedDate = self._cal.selection_get()
+            self._topLabel2.config(text=self._getSelectedDate)
+            self.master.after(1, self.master.update())
+
+        self.workoutPerDay = self.db['workoutPerDay']
+
+        self.master = master
+
+        '''Top Frame'''
+        # Calendar for user to pick workout date.
+        self._topFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
+        self._font1 = font.Font(self._topFrame, family='TIMES', size=22, weight='bold', underline=True)
+        self._topLabel = tk.Label(self._topFrame, text='SELECT DATE', bg='gray25', fg='ivory', font=self._font1)
+        self._topLabel.pack(padx=18, pady=(14, 0), fill=tk.BOTH)
+        self._cal = Calendar(self._topFrame, selectmode='day', year=self.currentDate.year, month=self.currentDate.month, day=self.currentDate.day)
+        self._cal.config(firstweekday='sunday', showweeknumbers=False, foreground='firebrick4', background='ivory', selectforeground='orange', showothermonthdays=False)
+        self._cal.pack(padx=30, fill=tk.BOTH, expand=True)
+        self._font2 = font.Font(self._topFrame, family='TIMES', size=22, weight='bold', underline=True)
+        self._topLabel2 = tk.Label(self._topFrame, text=self._cal.selection_get(), bg='lightcyan', fg='gray25', font=self._font2)
+        self._topLabel2.pack(padx=18, pady=14, fill=tk.Y)
+        self._topFrame.pack(fill=tk.BOTH, padx=18, pady=(8, 4), expand=True)
+
+        '''Middle Frame'''
+        self._middleFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='bisque')
+        self._middleFrame.grid_columnconfigure(0, weight=1)
+        self._middleFrame.grid_columnconfigure(1, weight=1)
+        self._middleFrame.grid_rowconfigure(0, weight=1)
+        self._middleFrame.grid_rowconfigure(1, weight=1)
+
+        self._muscleGroups = ['CHEST', 'BACK', 'SHOULDERS', 'ARMS', 'ABS', 'LEGS']
+
+        self._selectedMuscleGroup = tk.StringVar()
+        self._muscleGroupSelector = tk.OptionMenu(self._middleFrame, self._selectedMuscleGroup, *self._muscleGroups)
+        self._muscleGroupSelector['menu'].config(font=('calibri', 20), relief='raised', bd=4)
+        self._selectedMuscleGroup.set(self._muscleGroups[0])
+        self._muscleGroupSelector.grid(row=0, column=0, sticky='nsew', padx=6, pady=6)
+        self._middleFrame.pack(fill=tk.BOTH, padx=18, pady=(4, 4), expand=True)
+
+        '''Bottom Frame'''
+        self._bottomFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
+        self._bottomFrame.grid_rowconfigure(0, weigh=1)
+        self._bottomFrame.grid_rowconfigure(1, weight=1)
+        self._bottomFrame.grid_columnconfigure(0, weight=1)
+        self._addButton = tk.Button(self._bottomFrame, text='INSERT', font='HELVETICA 16 bold', highlightbackground='mediumaquamarine', fg='snow', relief='raised')
+        self._addButton.config(command=lambda: insertDocument(), state='disabled')
+        self._addButton.grid(row=0, column=0, sticky='nsew', padx=18, pady=4)
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 16 bold', command=lambda: back(), highlightbackground='indianred', fg='snow', relief='raised')
+        self._backButton.grid(row=1, column=0, sticky='nsew', padx=18, pady=4)
+        self._bottomFrame.pack(fill=tk.BOTH, padx=18, pady=(0, 8), expand=True)
+
+        self.master.title('RECORD WORKOUT')
+        self.master.config(bg='mediumpurple2')
+        self.master.bind('<<CalendarSelected>>', lambda cmd: updateDate())
+        self.master.minsize(550, 550)
         self.master.mainloop()
 
 # Execute Program.

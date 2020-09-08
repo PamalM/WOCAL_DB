@@ -422,6 +422,14 @@ class WoCal:
 
     def recordWorkout(self, master):
 
+        self.bodyGroup = None
+        self.workout = None
+        # Each index in sets, corresponds to that same index in reps.
+        # Index of set# in self.sets is related to same index in self.reps.
+        # So index 3 in self.reps will state the # of reps for the set # @ index 3 in self.sets
+        self.sets = []
+        self.reps = []
+
         # Method inserts the workout details into DB.
         def insertDocument():
             print('InsertDocument')
@@ -440,9 +448,93 @@ class WoCal:
             self._topLabel2.config(text=self._getSelectedDate)
             self.master.after(1, self.master.update())
 
+        def updateWorkoutList():
+            self._bodyGroup = str(self._selectedMuscleGroup.get())
+            self._array = []
+            if self._bodyGroup == 'CHEST' or 'BACK' or 'SHOULDERS' or 'ARMS' or 'ABS' or 'LEGS':
+                self._label2['state'] = 'normal'
+                self._workoutSelector['state'] = 'normal'
+                self._workoutSelector['menu'].delete(0, tk.END)
+                if self._bodyGroup == 'CHEST':
+                    self._workout.set(self._chestWorkouts[0])
+                    for item in self._chestWorkouts:
+                        self._array.append(item)
+                elif self._bodyGroup == 'BACK':
+                    self._workout.set(self._backWorkouts[0])
+                    for item in self._backWorkouts:
+                        self._array.append(item)
+                elif self._bodyGroup == 'SHOULDERS':
+                    self._workout.set(self._shoulderWorkouts[0])
+                    for item in self._shoulderWorkouts:
+                        self._array.append(item)
+                elif self._bodyGroup == 'ARMS':
+                    self._workout.set(self._armWorkouts[0])
+                    for item in self._armWorkouts:
+                        self._array.append(item)
+                elif self._bodyGroup == 'ABS':
+                    self._workout.set(self._coreWorkouts[0])
+                    for item in self._coreWorkouts:
+                        self._array.append(item)
+                elif self._bodyGroup == 'LEGS':
+                    self._workout.set(self._legsWorkouts[0])
+                    for item in self._legsWorkouts:
+                        self._array.append(item)
+
+                self._workoutSelector.pack_forget()
+                self._workout = tk.StringVar()
+                self._workoutSelector = tk.OptionMenu(self._middleFrame, self._workout, *self._array, command=lambda cmd: updateSetRepBox())
+                self._workoutSelector['menu'].config(font=('calibri', 20), relief='raised', bd=4)
+                self._workout.set('-')
+                self._workoutSelector.grid(row=3, column=0, sticky='ew', padx=6, pady=(0, 12))
+
+        def updateSetRepBox():
+            self._setRepBox['state'] = 'normal'
+            self._label3['state'] = 'normal'
+            self._setRepBox['bg'] = 'snow'
+            self._addRow['state'] = 'normal'
+            self._weightEntry['state'] = 'normal'
+            self._repEntry['state'] = 'normal'
+
+        def weightEntry_FocusIn(event):
+            if str(self._weightEntry.get()) == 'Weight (lbs)':
+                self._weightEntry_tkvar.set('')
+
+        def weightEntry_FocusOut(event):
+            if str(self._weightEntry.get()) == '':
+                self._weightEntry_tkvar.set('Weight (lbs)')
+
+        def repEntry_FocusIn(event):
+            if str(self._repEntry.get()) == '# Reps':
+                self._repEntry_tkvar.set('')
+
+        def repEntry_FocusOut(event):
+            if str(self._repEntry.get()) == '':
+                self._repEntry_tkvar.set('# Reps')
+
+        # TODO: Implement try/except statement for ensuring validity/correct format of reps/weight entered by user.
+        def addRows():
+            self._setNum += 1
+            if str(self._weightEntry.get()) != 'Weight (lbs)':
+                self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps - {2} lbs.'.format(self._setNum, self._repEntry.get(), self._weightEntry.get()))
+            else:
+                self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps'.format(self._setNum, self._repEntry.get()))
+            self._repEntry_tkvar.set('')
+            if self._setNum > 0:
+                self._delRow['state'] = 'normal'
+                self.master.update()
+
+        def delRows():
+            self._setNum -= 1
+            if self._setNum >= 1:
+                self._delRow['state'] = 'normal'
+                self.master.update()
+            self._setRepBox.delete(tk.END)
+
+
         self.workoutPerDay = self.db['workoutPerDay']
 
         self.master = master
+        self._setNum = 0
 
         '''Top Frame'''
         # Calendar for user to pick workout date.
@@ -456,23 +548,62 @@ class WoCal:
         self._font2 = font.Font(self._topFrame, family='TIMES', size=22, weight='bold', underline=True)
         self._topLabel2 = tk.Label(self._topFrame, text=self._cal.selection_get(), bg='lightcyan', fg='gray25', font=self._font2)
         self._topLabel2.pack(padx=18, pady=14, fill=tk.Y)
-        self._topFrame.pack(fill=tk.BOTH, padx=18, pady=(8, 4), expand=True)
+        self._topFrame.pack(fill=tk.BOTH, padx=18, pady=8, expand=True)
 
         '''Middle Frame'''
         self._middleFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='bisque')
         self._middleFrame.grid_columnconfigure(0, weight=1)
         self._middleFrame.grid_columnconfigure(1, weight=1)
+        self._middleFrame.grid_columnconfigure(2, weight=1)
         self._middleFrame.grid_rowconfigure(0, weight=1)
         self._middleFrame.grid_rowconfigure(1, weight=1)
+        self._middleFrame.grid_rowconfigure(2, weight=1)
+        self._middleFrame.grid_rowconfigure(3, weight=1)
 
         self._muscleGroups = ['CHEST', 'BACK', 'SHOULDERS', 'ARMS', 'ABS', 'LEGS']
-
+        self._label1 = tk.Label(self._middleFrame, text='1. SELECT BODY GROUP:', font='TIMESNEWROMAN 16 bold', bg='gray25', fg='ivory')
+        self._label1.grid(row=0, column=0, sticky='nsew', padx=8, pady=(12, 0))
         self._selectedMuscleGroup = tk.StringVar()
-        self._muscleGroupSelector = tk.OptionMenu(self._middleFrame, self._selectedMuscleGroup, *self._muscleGroups)
+        self._muscleGroupSelector = tk.OptionMenu(self._middleFrame, self._selectedMuscleGroup, *self._muscleGroups, command=lambda cmd: updateWorkoutList())
         self._muscleGroupSelector['menu'].config(font=('calibri', 20), relief='raised', bd=4)
-        self._selectedMuscleGroup.set(self._muscleGroups[0])
-        self._muscleGroupSelector.grid(row=0, column=0, sticky='nsew', padx=6, pady=6)
-        self._middleFrame.pack(fill=tk.BOTH, padx=18, pady=(4, 4), expand=True)
+        self._selectedMuscleGroup.set('-')
+        self._muscleGroupSelector.grid(row=1, column=0, sticky='ew', padx=8)
+
+        self._chestWorkouts = ['Push-ups', 'DB Bench Press', 'DB One-Arm Hammer Press', 'DB Fly']
+        self._backWorkouts = ['Barbell Bent-Over Row', 'DB One-Arm Row', 'Barbell Reverse Grip Bent-Over Row']
+        self._shoulderWorkouts = ['DB Shoulder Press', 'DB Shrugs', 'DB Alt. Deltoid Raises']
+        self._armWorkouts = ['DB Concentration Curls', 'DB Hammer Curls', 'DB Seated Bent-over Tricep Exts.', 'Barbell Trciep Extensions']
+        self._coreWorkouts = ['Sit-ups', 'V-ups', 'Scissor Kicks']
+        self._legsWorkouts = ['Glute Kickbacks', 'DB Lunges', 'DB Seated Calf Raises']
+        self._label2 = tk.Label(self._middleFrame, text='2. SELECT WORKOUT:', font='TIMESNEWROMAN 16 bold', bg='gray25', fg='ivory', state='disabled')
+        self._label2.grid(row=2, column=0, sticky='ew', padx=8)
+        self._workout = tk.StringVar()
+        self._workoutSelector = tk.OptionMenu(self._middleFrame, self._workout, [], command=lambda cmd: updateSetRepBox())
+        self._workoutSelector['menu'].config(font=('calibri', 20), relief='raised', bd=4)
+        self._workoutSelector['state'] = 'disabled'
+        self._workout.set('-')
+        self._workoutSelector.grid(row=3, column=0, sticky='ew', padx=8, pady=(0, 12))
+        self._label3 = tk.Label(self._middleFrame, text='3. ENTER SETS/REPS:', font='TIMESNEWROMAN 16 bold', bg='gray25', fg='ivory', state='disabled')
+        self._label3.grid(row=0, column=1, sticky='nsew', padx=8, pady=(12, 0), columnspan=2)
+        self._setRepBox = tk.Listbox(self._middleFrame, state='disabled', bg='ivory')
+        self._setRepBox.grid(row=1, column=1, sticky='nsew', padx=8, pady=12, rowspan=1, columnspan=2)
+        self._repEntry_tkvar = tk.StringVar()
+        self._repEntry = tk.Entry(self._middleFrame, justify='center', font='HELVETICA 20 bold', text=self._repEntry_tkvar, state='disabled')
+        self._repEntry_tkvar.set('# Reps')
+        self._repEntry.grid(row=2, column=1, sticky='nsew', padx=8, pady=12, columnspan=1)
+        self._repEntry.bind('<FocusIn>', repEntry_FocusIn)
+        self._repEntry.bind('<FocusOut>', repEntry_FocusOut)
+        self._weightEntry_tkvar = tk.StringVar()
+        self._weightEntry = tk.Entry(self._middleFrame, justify='center', font='HELVETICA 20 bold', text=self._weightEntry_tkvar, state='disabled')
+        self._weightEntry_tkvar.set('Weight (lbs)')
+        self._weightEntry.bind('<FocusIn>', weightEntry_FocusIn)
+        self._weightEntry.bind('<FocusOut>', weightEntry_FocusOut)
+        self._weightEntry.grid(row=2, column=2, sticky='nsew', padx=8, pady=12)
+        self._addRow = tk.Button(self._middleFrame, text='(+) Set', font='HELVETICA 14 bold', highlightbackground='green', state='disabled', command=lambda: addRows())
+        self._addRow.grid(row=3, column=2, sticky='nsew', padx=8, pady=8)
+        self._delRow = tk.Button(self._middleFrame, text='(-) Set', font='HELVETICA 14 bold', highlightbackground='indianred3', state='disabled', command=lambda: delRows())
+        self._delRow.grid(row=3, column=1, sticky='nsew', padx=8, pady=8)
+        self._middleFrame.pack(fill=tk.BOTH, padx=18, pady=8, expand=True)
 
         '''Bottom Frame'''
         self._bottomFrame = tk.Frame(self.master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
@@ -484,12 +615,12 @@ class WoCal:
         self._addButton.grid(row=0, column=0, sticky='nsew', padx=18, pady=4)
         self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 16 bold', command=lambda: back(), highlightbackground='indianred', fg='snow', relief='raised')
         self._backButton.grid(row=1, column=0, sticky='nsew', padx=18, pady=4)
-        self._bottomFrame.pack(fill=tk.BOTH, padx=18, pady=(0, 8), expand=True)
+        self._bottomFrame.pack(fill=tk.BOTH, padx=18, pady=8, expand=True)
 
         self.master.title('RECORD WORKOUT')
         self.master.config(bg='mediumpurple2')
         self.master.bind('<<CalendarSelected>>', lambda cmd: updateDate())
-        self.master.minsize(550, 550)
+        self.master.minsize(750, 750)
         self.master.mainloop()
 
 # Execute Program.

@@ -435,7 +435,24 @@ class WoCal:
 
         # Method inserts the workout details into DB.
         def insertDocument():
-            print('InsertDocument')
+            self._bodyGroup = str(self._selectedMuscleGroup.get())
+            self._workout = str(self._workout.get())
+            self._reps = self.reps
+            self._sets = self.sets
+            self._weights = self._weights
+            self._date = str(self.currentDate.year) + "-" + str(self.currentDate.month) + "-" + str(self.currentDate.day)
+
+            # Write contents to database.
+            self.workoutPerDay = self.db['workoutPerDay']
+            self._query = {'date': self._date, 'muscleGroup': self._bodyGroup, 'workout': self._workout, 'sets': self._sets, 'reps': self._reps, 'weight': self._weights}
+            self._insert = self.workoutPerDay.insert_one(self._query)
+
+            # Transition back to main-menu.
+            self.master.destroy()
+            self.master.quit()
+            self.root = tk.Tk()
+            self.methodsScreen(self.root)
+            self.root.mainloop()
 
         # Method binded to backButton.
         def back():
@@ -537,12 +554,12 @@ class WoCal:
                 self._repEntry_tkvar.set('')
                 if self._setNum > 0:
                     self._delRow['state'] = 'normal'
-                    self.master.update()
+                    self._addButton['state'] = 'normal'
+                else:
+                    self._delRow['state'] = 'disabled'
+                    self._addButton['state'] = 'disabled'
+                self.master.update()
 
-                print(self.sets)
-                print(self.reps)
-                print(self._weights)
-                print('')
             except ValueError:
                 def closeWindow():
                     self._alertWindow.destroy()
@@ -569,18 +586,18 @@ class WoCal:
 
         def delRows():
             self._setNum -= 1
-            if self._setNum == 0:
+            if self._setNum > 0:
+                self._delRow['state'] = 'normal'
+                self._addButton['state'] = 'normal'
+            else:
                 self._delRow['state'] = 'disabled'
-                self.master.update()
+                self._addButton['state'] = 'disabled'
+            self.master.update()
+
             self._setRepBox.delete(tk.END)
             self.sets.pop()
             self.reps.pop()
             self._weights.pop()
-            print(self.sets)
-            print(self.reps)
-            print(self._weights)
-            print('')
-
 
         self.workoutPerDay = self.db['workoutPerDay']
 

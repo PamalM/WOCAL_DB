@@ -13,7 +13,7 @@ import datetime
 
 class WoCal:
 
-    # Constructor method initiates WoCal object by signing into DB.
+    # Initiates WOCAL obj by signing into MongoDB.
     def __init__(self, master):
 
         # Login credentials.
@@ -211,7 +211,7 @@ class WoCal:
             self.master.bind('<Return>', lambda cmd: signIn())
             self.master.mainloop()
 
-    # Method presents user with all methods and actions that can be performed within the program; (Main-Menu)
+    # Presents user with 4 options. (Acts like a main-menu of sorts).
     def methodsScreen(self, master):
 
         def terminal(tag):
@@ -282,6 +282,7 @@ class WoCal:
         self.master.minsize(600, 400)
         self.master.mainloop()
 
+    # Record calorie(s) intake for specific date.
     def recordCalories(self, master):
 
         self._amount = None
@@ -420,6 +421,7 @@ class WoCal:
         self.master.minsize(500, 550)
         self.master.mainloop()
 
+    # Track/input workout stats for specific date.
     def recordWorkout(self, master):
 
         self.bodyGroup = None
@@ -429,6 +431,7 @@ class WoCal:
         # So index 3 in self.reps will state the # of reps for the set # @ index 3 in self.sets
         self.sets = []
         self.reps = []
+        self._weights = []
 
         # Method inserts the workout details into DB.
         def insertDocument():
@@ -511,24 +514,72 @@ class WoCal:
             if str(self._repEntry.get()) == '':
                 self._repEntry_tkvar.set('# Reps')
 
-        # TODO: Implement try/except statement for ensuring validity/correct format of reps/weight entered by user.
         def addRows():
-            self._setNum += 1
-            if str(self._weightEntry.get()) != 'Weight (lbs)':
-                self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps - {2} lbs.'.format(self._setNum, self._repEntry.get(), self._weightEntry.get()))
-            else:
-                self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps'.format(self._setNum, self._repEntry.get()))
-            self._repEntry_tkvar.set('')
-            if self._setNum > 0:
-                self._delRow['state'] = 'normal'
-                self.master.update()
+            try:
+                if str(self._weightEntry.get()) != 'Weight (lbs)':
+                    try:
+                        self._setNum += 1
+                        self.sets.append(int(self._setNum))
+                        self.reps.append(int(self._repEntry.get()))
+                        self._weights.append(float(self._weightEntry.get()))
+                        self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps - {2} lbs.'.format(self._setNum, self._repEntry.get(), self._weightEntry.get()))
+                    except ValueError:
+                        raise ValueError
+                else:
+                    try:
+                        self._setNum += 1
+                        self.sets.append(int(self._setNum))
+                        self.reps.append(int(self._repEntry.get()))
+                        self._weights.append(0.0)
+                        self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps'.format(self._setNum, self._repEntry.get()))
+                    except ValueError:
+                        raise ValueError
+                self._repEntry_tkvar.set('')
+                if self._setNum > 0:
+                    self._delRow['state'] = 'normal'
+                    self.master.update()
+
+                print(self.sets)
+                print(self.reps)
+                print(self._weights)
+                print('')
+            except ValueError:
+                def closeWindow():
+                    self._alertWindow.destroy()
+                    self._alertWindow.quit()
+                self._alertWindow = tk.Tk()
+                self._setNum -= 1
+
+                self._label1 = tk.Label(self._alertWindow, text='Please ensure you have entered a \nvalid rep amount and weight amount. ', fg='ivory', bg='indianred3')
+                self._label1.config(font='HELVETICA 16 bold')
+                self._label2 = tk.Label(self._alertWindow, text='If no weight for the workout, than leave entry as is!')
+                self._label2.config(bg='indianred3', fg='bisque', font='HELVETICA 12 bold')
+                self._label1.pack(pady=(10, 6), padx=20, fill=tk.X)
+                self._label2.pack(padx=20, fill=tk.X)
+                self._closeButton = tk.Button(self._alertWindow, text='CLOSE MESSAGE', font='HELVETICA 16 bold', highlightbackgroun='gray25', fg='ivory')
+                self._closeButton.config(command=lambda: closeWindow())
+                self._closeButton.pack(fill=tk.X, padx=20, pady=10)
+
+                self._alertWindow.config(bg='indianred3')
+                self._alertWindow.title('ALERT')
+                self._alertWindow.minsize(350, 150)
+                self._alertWindow.resizable(False, False)
+                self._alertWindow.bind('<Return>', lambda cmd: closeWindow())
+                self._alertWindow.mainloop()
 
         def delRows():
             self._setNum -= 1
-            if self._setNum >= 1:
-                self._delRow['state'] = 'normal'
+            if self._setNum == 0:
+                self._delRow['state'] = 'disabled'
                 self.master.update()
             self._setRepBox.delete(tk.END)
+            self.sets.pop()
+            self.reps.pop()
+            self._weights.pop()
+            print(self.sets)
+            print(self.reps)
+            print(self._weights)
+            print('')
 
 
         self.workoutPerDay = self.db['workoutPerDay']
@@ -622,6 +673,7 @@ class WoCal:
         self.master.bind('<<CalendarSelected>>', lambda cmd: updateDate())
         self.master.minsize(750, 750)
         self.master.mainloop()
+
 
 # Execute Program.
 if __name__ == '__main__':

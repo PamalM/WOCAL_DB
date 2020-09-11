@@ -147,12 +147,13 @@ class WoCal:
         print('[Awaiting user sign-in for DB] ...')
         # If (login.txt) file exists in proj. directory, than bypass login; Else direct user to db login screen.
         if self.fileExists:
+            self._credentials = [0,0]
             with open(self.filename, "r") as self.file:
                 for line in self.file:
-                    credentials = line.split(':')
+                    self._credentials = line.split(':')
                     # TODO
-                self._username = credentials[0]
-                self._password = credentials[1]
+                self._username = self._credentials[0]
+                self._password = self._credentials[1]
             print('[Successful login for {0}, into the Database]'.format(self._username))
             self._url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self._username, self._password)
             self.client = pym.MongoClient(self._url)

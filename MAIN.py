@@ -1,73 +1,71 @@
-import pymongo as pym
-from pymongo.errors import ConnectionFailure
-from pymongo.errors import OperationFailure
+import datetime
+import os
+import platform
+import time
 import tkinter as tk
 from tkinter import font
 from tkcalendar import Calendar
-import platform
-import os
-import matplotlib.pyplot as plt
-import time
-import datetime
+import pymongo as pym
+from pymongo.errors import ConnectionFailure
+from pymongo.errors import OperationFailure
 
 
 class WoCal:
-
-    # Initiates WOCAL obj by signing into MongoDB.
-    def __init__(self, master):
-
+    # WoCal object is initialized by signing into MongoDB.
+    def __init__(self, window):
         # Login credentials.
         self._username = None
         self._password = None
-        self._url = None
+        self._url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority"
 
+        # Calories/Workout is inserted into DB with 'date' as an identifying tag (Primary-Key if you will).
         self.currentDate = datetime.datetime.now()
 
-        # Method signs user into DB with username/password provided within entry fields.
+        # Method signs user into MongoDB.
         def signIn():
             try:
-                # Setup connection.
+                # Setup connection; Authenticate user before advancing to next GUI (Graphical-User-Interface).
                 self._username = str(self._usernameEntry.get())
                 self._password = str(self._passwordEntry.get())
                 if self._username != 'Enter Username' and self._password != 'Enter Password':
-                    self._url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self._username, self._password)
-                    # Make connection; Check for user authentication.
-                    self.client = pym.MongoClient(self._url)
+                    self.client = pym.MongoClient(self._url.format(self._username, self._password))
                     try:
                         self.client.admin.command('ismaster')
+                        # WoCal is the database that holds the caloriesPerDay and workoutPerDay collections that we will be inserted into.
                         self.db = self.client['WOCAL']
+                    # If the user isn't authenticated, we will handle all errors with one error message display window.
                     except ConnectionFailure:
                         raise ValueError
                     except OperationFailure:
                         raise ValueError
 
                     # Transition to next screen.
-                    print('[Successful sign-in into DB!]')
                     self.master.destroy()
                     self.master.quit()
+                    print('[{0} has signed into the DB]'.format(self._username))
 
-                    # Save user login credentials to text file depending on checkbox selection.
+                    # Save user login credentials to text file if 'rememberMe' checkbutton is selected by user.
                     if self._rememberMe.get():
-                        # Determine user's operating system.
-                        uMachine = platform.system()
-                        if uMachine == 'Darwin' or 'Linux':
-                            filename = os.getcwd() + '/login.txt'
-                        elif uMachine == 'Windows':
-                            filename = os.getcwd() + '\login.txt'
+                        # Determine user's operating system, to ensure login.txt file is saved to project directory.
+                        self.uMachine = platform.system()
+                        if self.uMachine == 'Darwin' or 'Linux':
+                            self.filename = os.getcwd() + '/login.txt'
+                        elif self.uMachine == 'Windows':
+                            self.filename = os.getcwd() + '\login.txt'
                         else:
-                            filename = 'NOF'
-                        if filename != 'NOF':
-                            with open(filename, 'w') as file:
-                                # Save login credentials to text file in cwd.
-                                file.write(self._username + ":" + self._password)
-                            file.close()
+                            self.filename = 'NOF'
+                        if self.filename != 'NOF':
+                            with open(self.filename, 'w') as self.file:
+                                self.file.write(self._username + ":" + self._password)
+                            self.file.close()
                         else:
-                            print('Error determining user OS; Error writing to file!')
+                            print('[Error whilst attempting to save user login credentials to project directory]]')
 
                     # Transfer to next screen.
                     self.root = tk.Tk()
                     self.methodsScreen(self.root)
                     self.root.mainloop()
+
             # Unable to establish connection; Notify user with alert window.
             except OperationFailure and ConnectionFailure and ValueError:
                 print('[Authentication Error!]')
@@ -145,15 +143,16 @@ class WoCal:
             self.filename = os.getcwd() + '\\login.txt'
             self.fileExists = os.path.exists(self.filename)
 
-        self.master = master
+        self.master = window
         print('[Awaiting user sign-in for DB] ...')
         # If (login.txt) file exists in proj. directory, than bypass login; Else direct user to db login screen.
         if self.fileExists:
-            with open(self.filename, "r") as file:
-                for line in file:
+            with open(self.filename, "r") as self.file:
+                for line in self.file:
                     credentials = line.split(':')
-            self._username = credentials[0]
-            self._password = credentials[1]
+                    # TODO
+                self._username = credentials[0]
+                self._password = credentials[1]
             print('[Successful login for {0}, into the Database]'.format(self._username))
             self._url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self._username, self._password)
             self.client = pym.MongoClient(self._url)
@@ -212,7 +211,7 @@ class WoCal:
             self.master.mainloop()
 
     # Presents user with 4 options. (Acts like a main-menu of sorts).
-    def methodsScreen(self, master):
+    def methodsScreen(self, window):
 
         def terminal(tag):
             self.master.destroy()
@@ -238,7 +237,7 @@ class WoCal:
             self.__init__(self.root)
             self.root.mainloop()
 
-        self.master = master
+        self.master = window
 
         '''Top Frame'''
         self._topFrame = tk.Frame(self.master, bg='gray25', relief='raised', bd=4, highlightbackground='gray30')
@@ -283,7 +282,7 @@ class WoCal:
         self.master.mainloop()
 
     # Record calorie(s) intake for specific date.
-    def recordCalories(self, master):
+    def recordCalories(self, window):
 
         self._amount = None
         self._desc = None
@@ -366,7 +365,7 @@ class WoCal:
                 self._alert.resizable(False, False)
                 self._alert.mainloop()
 
-        self.master = master
+        self.master = window
 
         '''Top Frame'''
         # Initial update for first time user logs into window. Label must be updated prior to entry.
@@ -422,7 +421,7 @@ class WoCal:
         self.master.mainloop()
 
     # Track/input workout stats for specific date.
-    def recordWorkout(self, master):
+    def recordWorkout(self, window):
 
         self.bodyGroup = None
         self.workout = None
@@ -601,7 +600,7 @@ class WoCal:
 
         self.workoutPerDay = self.db['workoutPerDay']
 
-        self.master = master
+        self.master = window
         self._setNum = 0
 
         '''Top Frame'''

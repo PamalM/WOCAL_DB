@@ -220,6 +220,8 @@ class WoCal:
             self.root = tk.Tk()
             if tag == 1:
                 self.recordCalories(self.root)
+            if tag == 2:
+                self.viewCalories(self.root)
             elif tag == 3:
                 self.recordWorkout(self.root)
             else:
@@ -691,6 +693,52 @@ class WoCal:
         self.master.minsize(750, 750)
         self.master.mainloop()
 
+    # Calories hub: User can view calories progress for (week/month/specific-date) and average calories.
+    def viewCalories(self, window):
+
+        # Method returns the average calories for the user for all calorie recordings.
+        def averageCalories():
+            return round(4563.234, 2)
+
+        self.master = window
+
+        self._tFborder = tk.Frame(self.master, bg='thistle1')
+        self._topFrame = tk.Frame(self._tFborder, bg='gray25')
+        self._topFrame.grid_rowconfigure(0, weight=1)
+        self._topFrame.grid_rowconfigure(1, weight=1)
+        self._topFrame.grid_rowconfigure(2, weight=1)
+        self._topFrame.grid_rowconfigure(3, weight=1)
+        self._topFrame.grid_rowconfigure(4, weight=1)
+        self._topFrame.grid_columnconfigure(0, weight=1)
+        self._todayStatButton = tk.Button(self._topFrame, text='TODAY\'S CALORIES', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._todayStatButton.config(relief='raised', highlightthickness=4)
+        self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
+        self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last7DaysButton.config(relief='raised', highlightthickness=4)
+        self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
+        self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last30DaysButton.config(relief='raised', highlightthickness=4)
+        self._last30DaysButton.grid(row=2, column=0, sticky='nsew', pady=5, padx=25)
+        self._font1 = font.Font(family='TIMES NEW ROMAN', size=16, weight='bold')
+        self._bottomLabel = tk.Label(self._topFrame, text='Average calories (per day):', fg='snow', bg='mediumpurple4', font=self._font1)
+        self._bottomLabel.config(relief='ridge', bd=6)
+        self._bottomLabel.grid(row=3, column=0, sticky='nsew', pady=5, padx=25)
+        self._font2 = font.Font(family='TIMES NEW ROMAN', size=20, weight='bold')
+        self._bottomLabel2 = tk.Label(self._topFrame, text=averageCalories(), fg='gray25', bg='lightskyblue2', font=self._font2)
+        self._bottomLabel2.config(relief='ridge', bd=4)
+        self._bottomLabel2.grid(row=4, column=0, sticky='ns', pady=(5, 20), padx=5)
+        self._topFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
+        self._tFborder.pack(padx=20, pady=(20, 30), fill=tk.BOTH, expand=True)
+
+        self._bottomFrame = tk.Frame(self.master, bg='gray25')
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 14 bold', highlightbackground='brown3', fg='snow')
+        self._backButton.pack(padx=25, pady=20, fill=tk.BOTH, expand=True)
+        self._bottomFrame.pack(padx=20, pady=(30, 20), fill=tk.BOTH, expand=True)
+
+        self.master.config(bg='seagreen3')
+        self.master.title('Calories Hub')
+        self.master.minsize(600, 500)
+        self.master.mainloop()
 
 # Execute Program.
 if __name__ == '__main__':

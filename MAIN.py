@@ -911,6 +911,10 @@ class WoCal:
             self._alpha.title(self._todayDateFormat)
             self._alpha.mainloop()
 
+        def sevenDayForecast():
+            self.master.destroy()
+            self.master.quit()
+
         self.master = window
 
         self._tFborder = tk.Frame(self.master, bg='thistle1')
@@ -926,7 +930,7 @@ class WoCal:
         self._todayStatButton.config(relief='raised', highlightthickness=4)
         self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
         self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
-        self._last7DaysButton.config(relief='raised', highlightthickness=4)
+        self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: sevenDayForecast())
         self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
         self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
         self._last30DaysButton.config(relief='raised', highlightthickness=4)

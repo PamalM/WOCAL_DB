@@ -696,9 +696,220 @@ class WoCal:
     # Calories hub: User can view calories progress for (week/month/specific-date) and average calories.
     def viewCalories(self, window):
 
+        self._amount = None
+        self._desc = None
+        self._date = None
+        self.calPerDay = self.db['calPerDay']
+
         # Method returns the average calories for the user for all calorie recordings.
         def averageCalories():
-            return round(4563.234, 2)
+            try:
+                self._dayTotal = 0.0
+                self._numEntries = self.calPerDay.estimated_document_count()
+                for self._records in self.calPerDay.find():
+                    self._dayTotal += self._records['amount']
+
+                self._averageCalories = self._dayTotal / self._numEntries
+                return round(self._averageCalories, 2)
+
+                # If no entries in the db.
+            except ZeroDivisionError:
+                return 0.0
+
+        # Back to main-menu.
+        def back():
+            self.master.destroy()
+            self.master.quit()
+            self.root = tk.Tk()
+            self.methodsScreen(self.root)
+            self.root.mainloop()
+
+        def specDayEntry_FocusIn(event):
+            if self._specDayEntry.get() == 'MM/DD/YYYY':
+                self._specDayEntry.delete(0, tk.END)
+                self._specDayEntry.insert(0, '')
+                self._specDayEntry.config(bg='powderblue', fg='gray25')
+
+        def specDayEntry_FocusOut(event):
+            if self._specDayEntry.get() == '':
+                self._specDayEntry.insert(0, 'MM/DD/YYYY')
+                self._specDayEntry.config(bg='lightblue3', fg='gray25')
+
+        # Method extracts date from entry and proceeds to next GUI.
+        def specDayEntryBind():
+            try:
+                self._formatMonthNumber = {1: '01',
+                                           2: '02',
+                                           3: '03',
+                                           4: '04',
+                                           5: '05',
+                                           6: '06',
+                                           7: '07',
+                                           8: '08',
+                                           9: '09',
+                                           10: '10',
+                                           11: '11',
+                                           12: '12'}
+
+                self._grab = str(self._specDayEntry.get()).split('/')
+                self._m = int(self._grab[0])
+                if self._m in self._formatMonthNumber.keys():
+                    self._m = self._formatMonthNumber.get(self._m)
+                else:
+                    self._m = int(self._grab[0])
+
+                self._d = int(self._grab[1])
+                if self._d in self._formatMonthNumber.keys():
+                    self._d = self._formatMonthNumber.get(self._d)
+                else:
+                    self._d = int(self._grab[1])
+
+                self._y = int(self._grab[2])
+
+                if int(self._m) >= 13 or int(self._m) <= 0:
+                    raise ValueError
+
+                viewToday(1, self._m, self._d, self._y)
+            except (ValueError, IndexError) as e:
+
+                def close():
+                    self._valErrorWin.destroy()
+                    self._valErrorWin.quit()
+
+                self._valErrorWin = tk.Tk()
+
+                self._font1 = font.Font(family='TIMES NEW ROMAN', size=22, weight='bold')
+                self._label1 = tk.Label(self._valErrorWin, text='Couldn\'t process that date.\nPlease try again!', font=self._font1)
+                self._label1.pack(padx=20, fill=tk.BOTH, pady=10)
+
+                self._closeButton = tk.Button(self._valErrorWin, text='CLOSE', font='HELVETICA 18 bold', highlightbackground='gray40', fg='ivory')
+                self._closeButton.config(relief='raised', command=lambda: close())
+                self._closeButton.pack(fill=tk.X, padx=20, pady=10)
+
+                self._valErrorWin.title('ALERT!')
+                self._valErrorWin.minsize(300, 100)
+                self._valErrorWin.resizable(False, False)
+                self._valErrorWin.config(bg='indianred3')
+                self._valErrorWin.mainloop()
+
+        # View today views the calories and and desc. for today's date. It will also be able to search for specific dates (both imps. in one method).
+        def viewToday(tag, *args):
+
+            def back():
+                self._alpha.destroy()
+                self._alpha.quit()
+                self._root = tk.Tk()
+                self.viewCalories(self._root)
+                self._root.mainloop()
+
+            self._month = None
+            self._day = None
+            self._year = None
+
+            # Dict. for converting numerical months to letters.
+            self._months = {1: 'January',
+                            2: 'February',
+                            3: 'March',
+                            4: 'April',
+                            5: 'May',
+                            6: 'June',
+                            7: 'July',
+                            8: 'August',
+                            9: 'September',
+                            10: 'October',
+                            11: 'November',
+                            12: 'December'}
+
+            self._formatMonthNumber = {1: '01',
+                                       2: '02',
+                                       3: '03',
+                                       4: '04',
+                                       5: '05',
+                                       6: '06',
+                                       7: '07',
+                                       8: '08',
+                                       9: '09',
+                                       10: '10',
+                                       11: '11',
+                                       12: '12'}
+
+            # View today.
+            if tag == 0:
+                self._month_Num = int(self.currentDate.month)
+                if self._month_Num in self._formatMonthNumber.keys():
+                    self._month_Num = self._formatMonthNumber.get(self._month_Num)
+                else:
+                    self._month_Num = self.currentDate.month
+                self._month = self._months.get(int(self.currentDate.month))
+                self._day = self.currentDate.day
+                self._year = self.currentDate.year
+
+            # View specific date from supplied *arguments.
+            elif tag == 1:
+                self._args = []
+                for self._item in args:
+                    self._args.append(self._item)
+                self._month_Num = self._args[0]
+                if self._month_Num in self._formatMonthNumber.keys():
+                    self._month_Num = self._formatMonthNumber.get(self._month_Num)
+                else:
+                    self._month_Num = self._args[0]
+                self._month = self._months.get(int(self._args[0]))
+                self._day = self._args[1]
+                self._year = self._args[2]
+
+            self.master.destroy()
+            self.master.quit()
+            self._todayDateFormat = '{0} {1}, {2}'.format(self._month, self._day, self._year)
+
+            self._alpha = tk.Tk()
+
+            print('{0}-{1}-{2}'.format(self._year, self._month_Num, self._day))
+
+            self._calories = []
+            self._descriptions = []
+
+            # Fill empty arrays. calories[n] corresponds to descriptions[n].
+            for self.docs in self.calPerDay.find({'date': '{0}-{1}-{2}'.format(self._year, self._month_Num, self._day)}):
+                self._calories.append(self.docs['amount'])
+                self._descriptions.append(self.docs['desc'])
+
+            self._totalCals = 0.0
+            for cals in self._calories:
+                self._totalCals += cals
+
+            # Display above information in window.
+            self._topFrame = tk.Frame(self._alpha, bg='gray25', bd=4, relief='ridge')
+            self._listBoxFont = font.Font(family='TIMES NEW ROMAN', size=18, weight='bold')
+            self._listBox = tk.Listbox(self._topFrame, bg='antiquewhite', font=self._listBoxFont, justify='center')
+            for self._index in range(0, len(self._calories)):
+                self._listBox.insert(tk.END, self._descriptions[self._index])
+                self._listBox.insert(tk.END, self._calories[self._index])
+            self._listBox.pack(padx=20, pady=(20, 5), fill=tk.BOTH)
+            for item in range (0, self._listBox.size()):
+                if item % 2 == 0:
+                    self._listBox.itemconfig(item, bg='lightpink3')
+            if self._listBox.size() == 0:
+                self._listBox.insert(0, 'NO DATA')
+                self._listBox.itemconfig(0, bg='indianred3', fg='ivory')
+
+            self._font1 = font.Font(family='TIMES NEW ROMAN', size=18, weight='bold')
+            self._topLabel = tk.Label(self._topFrame, text='Total Calories:', font=self._font1, bg='steelblue1', relief='ridge')
+            self._topLabel.pack(padx=20, pady=(5, 5), fill=tk.BOTH)
+            self._totalCalLabel = tk.Label(self._topFrame, text=self._totalCals,  font=self._font1, relief='raised')
+            self._totalCalLabel.pack(padx=20, pady=(5, 20), fill=tk.BOTH)
+            self._topFrame.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+            self._bottomFrame = tk.Frame(self._alpha, bg='gray25', highlightbackground='ivory')
+            self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 20 bold', highlightbackground='indianred3', fg='ivory', command=lambda: back())
+            self._backButton.config(relief='raised')
+            self._backButton.pack(fill=tk.BOTH, padx=20, pady=20)
+            self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH)
+
+            self._alpha.minsize(400, 400)
+            self._alpha.config(bg='darkslateblue')
+            self._alpha.title(self._todayDateFormat)
+            self._alpha.mainloop()
 
         self.master = window
 
@@ -711,6 +922,7 @@ class WoCal:
         self._topFrame.grid_rowconfigure(4, weight=1)
         self._topFrame.grid_columnconfigure(0, weight=1)
         self._todayStatButton = tk.Button(self._topFrame, text='TODAY\'S CALORIES', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._todayStatButton.config(command=lambda: viewToday(0))
         self._todayStatButton.config(relief='raised', highlightthickness=4)
         self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
         self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
@@ -728,16 +940,29 @@ class WoCal:
         self._bottomLabel2.config(relief='ridge', bd=4)
         self._bottomLabel2.grid(row=4, column=0, sticky='ns', pady=(5, 20), padx=5)
         self._topFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
-        self._tFborder.pack(padx=20, pady=(20, 30), fill=tk.BOTH, expand=True)
+        self._tFborder.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
 
         self._bottomFrame = tk.Frame(self.master, bg='gray25')
-        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 14 bold', highlightbackground='brown3', fg='snow')
-        self._backButton.pack(padx=25, pady=20, fill=tk.BOTH, expand=True)
-        self._bottomFrame.pack(padx=20, pady=(30, 20), fill=tk.BOTH, expand=True)
+        self._font3 = font.Font(family='TIMES NEW ROMAN', size=16, weight='bold')
+        self._bottomLabel = tk.Label(self._bottomFrame, text='Search specific date:', font=self._font3, bg='gray25', fg='ivory')
+        self._bottomLabel.pack(padx=25, fill=tk.BOTH, pady=(10, 2), expand=True)
+        self._specDayEntry = tk.Entry(self._bottomFrame, justify='center', bg='lightblue3', fg='gray25', font=self._font3)
+        self._specDayEntry.insert(0, 'MM/DD/YYYY')
+        self._specDayEntry.pack(fill=tk.BOTH, expand=True, padx=25, pady=(2, 10))
+        self._searchButton = tk.Button(self._bottomFrame, text='SEARCH', font='HELVETICA 14 bold', highlightbackground='palegreen3', command=lambda: specDayEntryBind())
+        self._searchButton.config(relief='raised')
+        self._searchButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 14 bold', highlightbackground='brown3', fg='snow', command=lambda: back())
+        self._backButton.config(relief='ridge')
+        self._backButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
 
         self.master.config(bg='seagreen3')
         self.master.title('Calories Hub')
         self.master.minsize(600, 500)
+        self._specDayEntry.bind('<FocusIn>', specDayEntry_FocusIn)
+        self._specDayEntry.bind('<FocusOut>', specDayEntry_FocusOut)
+        self.master.bind('<Return>', lambda cmd: specDayEntryBind())
         self.master.mainloop()
 
 # Execute Program.

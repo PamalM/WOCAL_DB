@@ -8,6 +8,7 @@ from tkcalendar import Calendar
 import pymongo as pym
 from pymongo.errors import ConnectionFailure
 from pymongo.errors import OperationFailure
+import matplotlib.pyplot as plt
 
 
 class WoCal:
@@ -220,7 +221,7 @@ class WoCal:
             self.root = tk.Tk()
             if tag == 1:
                 self.recordCalories(self.root)
-            if tag == 2:
+            elif tag == 2:
                 self.viewCalories(self.root)
             elif tag == 3:
                 self.recordWorkout(self.root)
@@ -864,8 +865,6 @@ class WoCal:
 
             self._alpha = tk.Tk()
 
-            print('{0}-{1}-{2}'.format(self._year, self._month_Num, self._day))
-
             self._calories = []
             self._descriptions = []
 
@@ -914,6 +913,50 @@ class WoCal:
         def sevenDayForecast():
             self.master.destroy()
             self.master.quit()
+
+            self._formatMonthNumber = {1: '01', 2: '02', 3: '03',
+                                       4: '04', 5: '05', 6: '06',
+                                       7: '07', 8: '08', 9: '09',
+                                       10: '10', 11: '11', 12: '12'}
+
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            if self._month in self._formatMonthNumber.keys():
+                self._month = self._formatMonthNumber.get(self._month)
+            else:
+                self._month = self.currentDate.month
+            self._day = self.currentDate.day
+            if self._day in self._formatMonthNumber.keys():
+                self._day = self._formatMonthNumber.get(self._day)
+            else:
+                self._day = self.currentDate.day
+
+            self._sevenDays = []
+            self._date = datetime.date(int(self._year), int(self._month), int(self._day))
+            for x in range(1, 8):
+                self._sevenDays.append(self._date.strftime('%Y-%m-%d'))
+                self._date += datetime.timedelta(days=-1)
+
+            self._sevenDaycalories = []
+
+            # Fill calories list for last 7 days.
+            for self._dates in self._sevenDays:
+                self._dayTotal = 0.0
+                for self._calorie in self.calPerDay.find({'date': self._dates}):
+                    self._dayTotal += self._calorie['amount']
+                self._sevenDaycalories.append(self._dayTotal)
+
+            # Plot the trend.
+            self._ax = plt.axes()
+            plt.xlabel('Date:')
+            plt.ylabel('Calorie Amount:')
+            plt.title('Previous 7-Days:')
+            self._ax.xaxis.set_major_locator(plt.MultipleLocator(2))
+            self._ax.yaxis.set_major_locator(plt.MultipleLocator(500))
+            plt.scatter(self._sevenDays, self._sevenDaycalories, label='', color='m', marker='o')
+            plt.plot(self._sevenDays, self._sevenDaycalories, '-o')
+            plt.gca().invert_xaxis()
+            plt.show()
 
         self.master = window
 

@@ -911,9 +911,6 @@ class WoCal:
             self._alpha.mainloop()
 
         def sevenDayForecast():
-            self.master.destroy()
-            self.master.quit()
-
             self._formatMonthNumber = {1: '01', 2: '02', 3: '03',
                                        4: '04', 5: '05', 6: '06',
                                        7: '07', 8: '08', 9: '09',
@@ -953,9 +950,64 @@ class WoCal:
             plt.title('Previous 7-Days:')
             self._ax.xaxis.set_major_locator(plt.MultipleLocator(2))
             self._ax.yaxis.set_major_locator(plt.MultipleLocator(500))
-            plt.scatter(self._sevenDays, self._sevenDaycalories, label='', color='m', marker='o')
-            plt.plot(self._sevenDays, self._sevenDaycalories, '-o')
+            plt.scatter(self._sevenDays, self._sevenDaycalories, label='x', color='m', marker='o')
+            plt.plot(self._sevenDays, self._sevenDaycalories, '-o', color='k')
             plt.gca().invert_xaxis()
+            fig = plt.gcf()
+            self._ax.set_facecolor('xkcd:sky')
+            plt.rcParams['figure.facecolor'] = 'white'
+            plt.ylim(0, 3750)
+            fig.canvas.set_window_title('7-Day Calories Forecast:')
+            plt.show()
+
+        def thirtyDayForecast():
+            self._formatMonthNumber = {1: '01', 2: '02', 3: '03',
+                                       4: '04', 5: '05', 6: '06',
+                                       7: '07', 8: '08', 9: '09',
+                                       10: '10', 11: '11', 12: '12'}
+
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            if self._month in self._formatMonthNumber.keys():
+                self._month = self._formatMonthNumber.get(self._month)
+            else:
+                self._month = self.currentDate.month
+            self._day = self.currentDate.day
+            if self._day in self._formatMonthNumber.keys():
+                self._day = self._formatMonthNumber.get(self._day)
+            else:
+                self._day = self.currentDate.day
+
+            self._thirtyDays = []
+            self._date = datetime.date(int(self._year), int(self._month), int(self._day))
+            for x in range(1, 31):
+                self._thirtyDays.append(self._date.strftime('%Y-%m-%d'))
+                self._date += datetime.timedelta(days=-1)
+
+            self._thirtyDaycalories = []
+
+            # Fill calories list for last 30 days.
+            for self._dates in self._thirtyDays:
+                self._dayTotal = 0.0
+                for self._calorie in self.calPerDay.find({'date': self._dates}):
+                    self._dayTotal += self._calorie['amount']
+                self._thirtyDaycalories.append(self._dayTotal)
+
+            # Plot the trend.
+            self._ax = plt.axes()
+            plt.xlabel('Date:')
+            plt.ylabel('Calorie Amount:')
+            plt.title('Previous 30-Days:')
+            self._ax.xaxis.set_major_locator(plt.MultipleLocator(7))
+            self._ax.yaxis.set_major_locator(plt.MultipleLocator(500))
+            plt.scatter(self._thirtyDays, self._thirtyDaycalories, label='x', color='m', marker='o')
+            plt.plot(self._thirtyDays, self._thirtyDaycalories, '-o', color='k')
+            plt.gca().invert_xaxis()
+            fig = plt.gcf()
+            self._ax.set_facecolor('xkcd:sky')
+            plt.rcParams['figure.facecolor'] = 'white'
+            plt.ylim(0, 3750)
+            fig.canvas.set_window_title('30-Day Calories Forecast:')
             plt.show()
 
         self.master = window
@@ -976,6 +1028,7 @@ class WoCal:
         self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: sevenDayForecast())
         self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
         self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last30DaysButton.config(relief='raised', highlightthickness=4, command=lambda: thirtyDayForecast())
         self._last30DaysButton.config(relief='raised', highlightthickness=4)
         self._last30DaysButton.grid(row=2, column=0, sticky='nsew', pady=5, padx=25)
         self._font1 = font.Font(family='TIMES NEW ROMAN', size=16, weight='bold')

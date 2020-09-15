@@ -225,8 +225,8 @@ class WoCal:
                 self.viewCalories(self.root)
             elif tag == 3:
                 self.recordWorkout(self.root)
-            else:
-                print(tag)
+            elif tag == 4:
+                self.viewWorkout(self.root)
             self.root.mainloop()
 
         # Method deletes login.text file from cwd if it exits, and directs user back to db log-in window.
@@ -1058,7 +1058,224 @@ class WoCal:
         self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
 
         self.master.config(bg='seagreen3')
-        self.master.title('Calories Hub')
+        self.master.title('Calories History')
+        self.master.minsize(600, 500)
+        self._specDayEntry.bind('<FocusIn>', specDayEntry_FocusIn)
+        self._specDayEntry.bind('<FocusOut>', specDayEntry_FocusOut)
+        self.master.bind('<Return>', lambda cmd: specDayEntryBind())
+        self.master.mainloop()
+
+    def viewWorkout(self, window):
+
+        # Back to main-menu.
+        def back():
+            self.master.destroy()
+            self.master.quit()
+            self.root = tk.Tk()
+            self.methodsScreen(self.root)
+            self.root.mainloop()
+
+        def specDayEntry_FocusIn(event):
+            if self._specDayEntry.get() == 'MM/DD/YYYY':
+                self._specDayEntry.delete(0, tk.END)
+                self._specDayEntry.insert(0, '')
+                self._specDayEntry.config(bg='powderblue', fg='gray25')
+
+        def specDayEntry_FocusOut(event):
+            if self._specDayEntry.get() == '':
+                self._specDayEntry.insert(0, 'MM/DD/YYYY')
+                self._specDayEntry.config(bg='lightblue3', fg='gray25')
+
+        # Method extracts date from entry and proceeds to next GUI.
+        def specDayEntryBind():
+            try:
+                self._formatMonthNumber = {1: '01',
+                                           2: '02',
+                                           3: '03',
+                                           4: '04',
+                                           5: '05',
+                                           6: '06',
+                                           7: '07',
+                                           8: '08',
+                                           9: '09',
+                                           10: '10',
+                                           11: '11',
+                                           12: '12'}
+
+                self._grab = str(self._specDayEntry.get()).split('/')
+                self._m = int(self._grab[0])
+                if self._m in self._formatMonthNumber.keys():
+                    self._m = self._formatMonthNumber.get(self._m)
+                else:
+                    self._m = int(self._grab[0])
+
+                self._d = int(self._grab[1])
+                if self._d in self._formatMonthNumber.keys():
+                    self._d = self._formatMonthNumber.get(self._d)
+                else:
+                    self._d = int(self._grab[1])
+
+                self._y = int(self._grab[2])
+
+                if int(self._m) >= 13 or int(self._m) <= 0:
+                    raise ValueError
+                viewToday(1, self._y, self._m, self._d)
+            except (ValueError, IndexError) as e:
+
+                def close():
+                    self._valErrorWin.destroy()
+                    self._valErrorWin.quit()
+
+                self._valErrorWin = tk.Tk()
+
+                self._font1 = font.Font(family='TIMES NEW ROMAN', size=22, weight='bold')
+                self._label1 = tk.Label(self._valErrorWin, text='Couldn\'t process that date.\nPlease try again!', font=self._font1)
+                self._label1.pack(padx=20, fill=tk.BOTH, pady=10)
+
+                self._closeButton = tk.Button(self._valErrorWin, text='CLOSE', font='HELVETICA 18 bold', highlightbackground='gray40', fg='ivory')
+                self._closeButton.config(relief='raised', command=lambda: close())
+                self._closeButton.pack(fill=tk.X, padx=20, pady=10)
+
+                self._valErrorWin.title('ALERT!')
+                self._valErrorWin.minsize(300, 100)
+                self._valErrorWin.resizable(False, False)
+                self._valErrorWin.config(bg='indianred3')
+                self._valErrorWin.mainloop()
+
+        def viewToday(tag, *args):
+            self.workoutPerDay = self.db['workoutPerDay']
+            self._workouts = []
+            self._reps = []
+            self._sets = []
+            self._muscleGroups = []
+            self._weights = []
+
+            self._year = ''
+            self._month = ''
+            self._day = ''
+
+            if tag == 0:
+                self._year = self.currentDate.year
+                self._month = self.currentDate.month
+                self._day = self.currentDate.day
+            elif tag == 1:
+                self._x = []
+                for self._arg in args:
+                    self._x.append(self._arg)
+                self._year = self._x[0]
+                self._month = self._x[1]
+                self._day = self._x[2]
+
+            for self._docs in self.workoutPerDay.find({'date': '{0}-{1}-{2}'.format(self._year, self._month, self._day)}):
+                self._workouts.append(self._docs['workout'])
+                self._sets.append(self._docs['sets'])
+                self._reps.append(self._docs['reps'])
+                self._weights.append(self._docs['weight'])
+                self._muscleGroups.append(self._docs['muscleGroup'])
+
+            def back():
+                self._alpha.destroy()
+                self._alpha.quit()
+
+            self._alpha = tk.Tk()
+
+            self._topFrame = tk.Frame(self._alpha, bg='gray25', bd=4, relief='ridge')
+            # Textbox to hold workout history.
+            self._textBox = tk.Listbox(self._topFrame, justify='center', font='HELVECTICA 20 bold', bg='gray25', relief='groove', bd=4)
+            self._textBox.pack(padx=25, pady=25, fill=tk.BOTH, expand=True)
+
+            # Generating a single-line condensed rep message instead of list format.
+            self._repMsg = ''
+            try:
+                for self._rep in self._reps[0]:
+                    if self._rep != self._reps[0][0]:
+                        self._repMsg += '/' + str(self._rep)
+                    else:
+                        self._repMsg += str(self._rep)
+
+                self._weightMsg = ''
+                for self._weight in self._weights[0]:
+                    if self._weight != self._weights[0][0]:
+                        self._weightMsg += '/' + str(self._weight)
+                    else:
+                        self._weightMsg += str(self._weight)
+                self._weightMsg += ' lbs.'
+
+                for item in range(0, len(self._workouts)):
+                    self._textBox.insert(tk.END, str(self._workouts[item]).upper())
+                    self._textBox.itemconfig(tk.END, bg='mediumorchid2')
+                    self._textBox.insert(tk.END, str(self._muscleGroups[item]).upper())
+                    self._textBox.itemconfig(tk.END, bg='lightgoldenrod')
+                    self._textBox.insert(tk.END, str(self._sets[0][-1]) + ' Set(s)')
+                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.insert(tk.END, str(self._repMsg) + ' Rep(s)')
+                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.insert(tk.END, str(self._weightMsg))
+                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.insert(tk.END, '\n')
+                    self._textBox.itemconfig(tk.END, bg='gray25')
+            except IndexError:
+                if self._textBox.size() == 0:
+                    self._textBox.insert(0, 'NO DATA')
+                    self._textBox.itemconfig(0, bg='indianred3', fg='ivory')
+            self._topFrame.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+            self._bottomFrame = tk.Frame(self._alpha, bg='gray25', highlightbackground='ivory')
+            self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 20 bold', highlightbackground='indianred3', fg='ivory', command=lambda: back())
+            self._backButton.config(relief='raised')
+            self._backButton.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+            self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
+
+            if tag == 0:
+                self._alpha.title('Today\'s Workout(s):')
+            else:
+                self._alpha.title('{0}-{1}-{2}\'s Workout(s):'.format(self._year, self._month, self._day))
+
+            self._alpha.config(bg='thistle1')
+            self._alpha.minsize(500, 300)
+            self._alpha.mainloop()
+
+        self.master = window
+
+        self._tFborder = tk.Frame(self.master, bg='thistle1')
+        self._topFrame = tk.Frame(self._tFborder, bg='gray25')
+        self._topFrame.grid_rowconfigure(0, weight=1)
+        self._topFrame.grid_rowconfigure(1, weight=1)
+        self._topFrame.grid_rowconfigure(2, weight=1)
+        self._topFrame.grid_rowconfigure(3, weight=1)
+        self._topFrame.grid_rowconfigure(4, weight=1)
+        self._topFrame.grid_columnconfigure(0, weight=1)
+        self._todayStatButton = tk.Button(self._topFrame, text='TODAY\'S WORKOUT', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._todayStatButton.config(command=lambda: viewToday(0))
+        self._todayStatButton.config(relief='raised', highlightthickness=4)
+        self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
+        self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: print(''))
+        self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
+        self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last30DaysButton.config(relief='raised', highlightthickness=4, command=lambda: print(''))
+        self._last30DaysButton.config(relief='raised', highlightthickness=4)
+        self._last30DaysButton.grid(row=2, column=0, sticky='nsew', pady=5, padx=25)
+        self._topFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
+        self._tFborder.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+        self._bottomFrame = tk.Frame(self.master, bg='gray25')
+        self._font3 = font.Font(family='TIMES NEW ROMAN', size=16, weight='bold')
+        self._bottomLabel = tk.Label(self._bottomFrame, text='Search specific date:', font=self._font3, bg='gray25', fg='ivory')
+        self._bottomLabel.pack(padx=25, fill=tk.BOTH, pady=(10, 2), expand=True)
+        self._specDayEntry = tk.Entry(self._bottomFrame, justify='center', bg='lightblue3', fg='gray25', font=self._font3)
+        self._specDayEntry.insert(0, 'MM/DD/YYYY')
+        self._specDayEntry.pack(fill=tk.BOTH, expand=True, padx=25, pady=(2, 10))
+        self._searchButton = tk.Button(self._bottomFrame, text='SEARCH', font='HELVETICA 14 bold', highlightbackground='palegreen3', command=lambda: specDayEntryBind())
+        self._searchButton.config(relief='raised')
+        self._searchButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 14 bold', highlightbackground='brown3', fg='snow', command=lambda: back())
+        self._backButton.config(relief='ridge')
+        self._backButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
+
+        self.master.config(bg='mediumpurple3')
+        self.master.title('Calories History')
         self.master.minsize(600, 500)
         self._specDayEntry.bind('<FocusIn>', specDayEntry_FocusIn)
         self._specDayEntry.bind('<FocusOut>', specDayEntry_FocusOut)

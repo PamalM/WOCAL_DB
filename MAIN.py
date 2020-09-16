@@ -1119,7 +1119,7 @@ class WoCal:
 
                 if int(self._m) >= 13 or int(self._m) <= 0:
                     raise ValueError
-                viewToday(1, self._y, self._m, self._d)
+                viewDay(self._y, self._m, self._d)
             except (ValueError, IndexError) as e:
 
                 def close():
@@ -1142,7 +1142,17 @@ class WoCal:
                 self._valErrorWin.config(bg='indianred3')
                 self._valErrorWin.mainloop()
 
-        def viewToday(tag, *args):
+        def viewDay(year, month, day):
+            self.workoutPerDay = self.db['workoutPerDay']
+            for self._docs in self.workoutPerDay.find({'date': '{0}-{1}-{2}'.format(year, int(month), int(day))}):
+                print(self._docs)
+
+        def viewToday():
+
+            def back():
+                self._alpha.destroy()
+                self._alpha.quit()
+
             self.workoutPerDay = self.db['workoutPerDay']
             self._workouts = []
             self._reps = []
@@ -1150,21 +1160,9 @@ class WoCal:
             self._muscleGroups = []
             self._weights = []
 
-            self._year = ''
-            self._month = ''
-            self._day = ''
-
-            if tag == 0:
-                self._year = self.currentDate.year
-                self._month = self.currentDate.month
-                self._day = self.currentDate.day
-            elif tag == 1:
-                self._x = []
-                for self._arg in args:
-                    self._x.append(self._arg)
-                self._year = self._x[0]
-                self._month = self._x[1]
-                self._day = self._x[2]
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            self._day = self.currentDate.day
 
             for self._docs in self.workoutPerDay.find({'date': '{0}-{1}-{2}'.format(self._year, self._month, self._day)}):
                 self._workouts.append(self._docs['workout'])
@@ -1173,44 +1171,30 @@ class WoCal:
                 self._weights.append(self._docs['weight'])
                 self._muscleGroups.append(self._docs['muscleGroup'])
 
-            def back():
-                self._alpha.destroy()
-                self._alpha.quit()
-
             self._alpha = tk.Tk()
 
             self._topFrame = tk.Frame(self._alpha, bg='gray25', bd=4, relief='ridge')
             # Textbox to hold workout history.
             self._textBox = tk.Listbox(self._topFrame, justify='center', font='HELVECTICA 20 bold', bg='gray25', relief='groove', bd=4)
-            self._textBox.pack(padx=25, pady=25, fill=tk.BOTH, expand=True)
 
-            # Generating a single-line condensed rep message instead of list format.
-            self._repMsg = ''
             try:
-                for self._rep in self._reps[0]:
-                    if self._rep != self._reps[0][0]:
-                        self._repMsg += '/' + str(self._rep)
-                    else:
-                        self._repMsg += str(self._rep)
-
-                self._weightMsg = ''
-                for self._weight in self._weights[0]:
-                    if self._weight != self._weights[0][0]:
-                        self._weightMsg += '/' + str(self._weight)
-                    else:
-                        self._weightMsg += str(self._weight)
-                self._weightMsg += ' lbs.'
-
                 for item in range(0, len(self._workouts)):
                     self._textBox.insert(tk.END, str(self._workouts[item]).upper())
                     self._textBox.itemconfig(tk.END, bg='mediumorchid2')
                     self._textBox.insert(tk.END, str(self._muscleGroups[item]).upper())
                     self._textBox.itemconfig(tk.END, bg='lightgoldenrod')
-                    self._textBox.insert(tk.END, str(self._sets[0][-1]) + ' Set(s)')
+                    self._textBox.insert(tk.END, str(self._sets[item][-1]) + ' Set(s)')
                     self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
-                    self._textBox.insert(tk.END, str(self._repMsg) + ' Rep(s)')
-                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
-                    self._textBox.insert(tk.END, str(self._weightMsg))
+                    self._total = 0.0
+                    self._weightMsg = ''
+                    for self._weight in self._weights[item]:
+                        self._total += self._weight
+                    if self._total == 0:
+                        self._weightMsg = 'No Weight'
+                    if self._weightMsg == '':
+                        self._textBox.insert(tk.END, str(self._weights[item]))
+                    else:
+                        self._textBox.insert(tk.END, self._weightMsg)
                     self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
                     self._textBox.insert(tk.END, '\n')
                     self._textBox.itemconfig(tk.END, bg='gray25')
@@ -1218,6 +1202,8 @@ class WoCal:
                 if self._textBox.size() == 0:
                     self._textBox.insert(0, 'NO DATA')
                     self._textBox.itemconfig(0, bg='indianred3', fg='ivory')
+
+            self._textBox.pack(padx=25, pady=25, fill=tk.BOTH, expand=True)
             self._topFrame.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
 
             self._bottomFrame = tk.Frame(self._alpha, bg='gray25', highlightbackground='ivory')
@@ -1226,11 +1212,7 @@ class WoCal:
             self._backButton.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
             self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
 
-            if tag == 0:
-                self._alpha.title('Today\'s Workout(s):')
-            else:
-                self._alpha.title('{0}-{1}-{2}\'s Workout(s):'.format(self._year, self._month, self._day))
-
+            self._alpha.title('Today\'s Workout(s):')
             self._alpha.config(bg='thistle1')
             self._alpha.minsize(500, 300)
             self._alpha.mainloop()
@@ -1246,7 +1228,7 @@ class WoCal:
         self._topFrame.grid_rowconfigure(4, weight=1)
         self._topFrame.grid_columnconfigure(0, weight=1)
         self._todayStatButton = tk.Button(self._topFrame, text='TODAY\'S WORKOUT', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
-        self._todayStatButton.config(command=lambda: viewToday(0))
+        self._todayStatButton.config(command=lambda: viewToday())
         self._todayStatButton.config(relief='raised', highlightthickness=4)
         self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
         self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
@@ -1275,7 +1257,7 @@ class WoCal:
         self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
 
         self.master.config(bg='mediumpurple3')
-        self.master.title('Calories History')
+        self.master.title('Workout History')
         self.master.minsize(600, 500)
         self._specDayEntry.bind('<FocusIn>', specDayEntry_FocusIn)
         self._specDayEntry.bind('<FocusOut>', specDayEntry_FocusOut)

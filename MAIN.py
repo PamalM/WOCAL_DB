@@ -1176,7 +1176,9 @@ class WoCal:
                     self._textBox.insert(tk.END, str(self._muscleGroups[item]).upper())
                     self._textBox.itemconfig(tk.END, bg='lightgoldenrod')
                     self._textBox.insert(tk.END, str(self._sets[item][-1]) + ' Set(s)')
-                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
+                    self._textBox.insert(tk.END, str(self._reps[item]) + ' Rep(s)')
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
                     self._total = 0.0
                     self._weightMsg = ''
                     for self._weight in self._weights[item]:
@@ -1184,10 +1186,10 @@ class WoCal:
                     if self._total == 0:
                         self._weightMsg = 'No Weight'
                     if self._weightMsg == '':
-                        self._textBox.insert(tk.END, str(self._weights[item]))
+                        self._textBox.insert(tk.END, str(self._weights[item]) + ' lbs.')
                     else:
                         self._textBox.insert(tk.END, self._weightMsg)
-                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
                     self._textBox.insert(tk.END, '\n')
                     self._textBox.itemconfig(tk.END, bg='gray25')
             except IndexError:
@@ -1250,7 +1252,9 @@ class WoCal:
                     self._textBox.insert(tk.END, str(self._muscleGroups[item]).upper())
                     self._textBox.itemconfig(tk.END, bg='lightgoldenrod')
                     self._textBox.insert(tk.END, str(self._sets[item][-1]) + ' Set(s)')
-                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
+                    self._textBox.insert(tk.END, str(self._reps[item]) + ' Rep(s)')
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
                     self._total = 0.0
                     self._weightMsg = ''
                     for self._weight in self._weights[item]:
@@ -1258,10 +1262,10 @@ class WoCal:
                     if self._total == 0:
                         self._weightMsg = 'No Weight'
                     if self._weightMsg == '':
-                        self._textBox.insert(tk.END, str(self._weights[item]))
+                        self._textBox.insert(tk.END, str(self._weights[item]) + ' lbs.')
                     else:
                         self._textBox.insert(tk.END, self._weightMsg)
-                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
                     self._textBox.insert(tk.END, '\n')
                     self._textBox.itemconfig(tk.END, bg='gray25')
             except IndexError:

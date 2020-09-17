@@ -443,7 +443,7 @@ class WoCal:
             self._reps = self.reps
             self._sets = self.sets
             self._weights = self._weights
-            self._date = str(self.currentDate.year) + "-" + str(self.currentDate.month) + "-" + str(self.currentDate.day)
+            self._date = str(self._cal.selection_get().year) + "-" + str(self._cal.selection_get().month) + "-" + str(self._cal.selection_get().day)
 
             # Write contents to database.
             self.workoutPerDay = self.db['workoutPerDay']
@@ -1143,9 +1143,75 @@ class WoCal:
                 self._valErrorWin.mainloop()
 
         def viewDay(year, month, day):
+
+            def back():
+                self._alpha.destroy()
+                self._alpha.quit()
+
             self.workoutPerDay = self.db['workoutPerDay']
-            for self._docs in self.workoutPerDay.find({'date': '{0}-{1}-{2}'.format(year, int(month), int(day))}):
-                print(self._docs)
+            self._workouts = []
+            self._reps = []
+            self._sets = []
+            self._muscleGroups = []
+            self._weights = []
+
+            self.workoutPerDay = self.db['workoutPerDay']
+            for self._docs in self.workoutPerDay.find({'date': '{0}-{1}-{2}'.format(int(year), int(month), int(day))}):
+                self._workouts.append(self._docs['workout'])
+                self._sets.append(self._docs['sets'])
+                self._reps.append(self._docs['reps'])
+                self._weights.append(self._docs['weight'])
+                self._muscleGroups.append(self._docs['muscleGroup'])
+
+            self._alpha = tk.Tk()
+
+            self._topFrame = tk.Frame(self._alpha, bg='gray25', bd=4, relief='ridge')
+            # Textbox to hold workout history.
+            self._textBox = tk.Listbox(self._topFrame, justify='center', font='HELVECTICA 20 bold', bg='gray25', relief='groove', bd=4)
+
+            try:
+                for item in range(0, len(self._workouts)):
+                    self._textBox.insert(tk.END, str(self._workouts[item]).upper())
+                    self._textBox.itemconfig(tk.END, bg='mediumorchid2')
+                    self._textBox.insert(tk.END, str(self._muscleGroups[item]).upper())
+                    self._textBox.itemconfig(tk.END, bg='lightgoldenrod')
+                    self._textBox.insert(tk.END, str(self._sets[item][-1]) + ' Set(s)')
+                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._total = 0.0
+                    self._weightMsg = ''
+                    for self._weight in self._weights[item]:
+                        self._total += self._weight
+                    if self._total == 0:
+                        self._weightMsg = 'No Weight'
+                    if self._weightMsg == '':
+                        self._textBox.insert(tk.END, str(self._weights[item]))
+                    else:
+                        self._textBox.insert(tk.END, self._weightMsg)
+                    self._textBox.itemconfig(tk.END, bg='gray95', fg='gray25')
+                    self._textBox.insert(tk.END, '\n')
+                    self._textBox.itemconfig(tk.END, bg='gray25')
+            except IndexError:
+                if self._textBox.size() == 0:
+                    self._textBox.insert(0, 'NO DATA')
+                    self._textBox.itemconfig(0, bg='indianred3', fg='ivory')
+            finally:
+                if self._textBox.size() == 0:
+                    self._textBox.insert(0, 'NO DATA')
+                    self._textBox.itemconfig(0, bg='indianred3', fg='ivory')
+
+            self._textBox.pack(padx=25, pady=25, fill=tk.BOTH, expand=True)
+            self._topFrame.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+            self._bottomFrame = tk.Frame(self._alpha, bg='gray25', highlightbackground='ivory')
+            self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 20 bold', highlightbackground='indianred3', fg='ivory', command=lambda: back())
+            self._backButton.config(relief='raised')
+            self._backButton.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+            self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
+
+            self._alpha.title('{0}-{1}-{2}\'s Workout(s):'.format(year, month, day))
+            self._alpha.config(bg='thistle1')
+            self._alpha.minsize(500, 300)
+            self._alpha.mainloop()
 
         def viewToday():
 
@@ -1199,6 +1265,10 @@ class WoCal:
                     self._textBox.insert(tk.END, '\n')
                     self._textBox.itemconfig(tk.END, bg='gray25')
             except IndexError:
+                if self._textBox.size() == 0:
+                    self._textBox.insert(0, 'NO DATA')
+                    self._textBox.itemconfig(0, bg='indianred3', fg='ivory')
+            finally:
                 if self._textBox.size() == 0:
                     self._textBox.insert(0, 'NO DATA')
                     self._textBox.itemconfig(0, bg='indianred3', fg='ivory')

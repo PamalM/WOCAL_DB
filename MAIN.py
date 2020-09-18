@@ -1,15 +1,14 @@
 import datetime
 import os
-import platform
-import time
+from platform import system
+from time import sleep
 import tkinter as tk
 from tkinter import font
 from tkcalendar import Calendar
-import pymongo as pym
+from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from pymongo.errors import OperationFailure
 import matplotlib.pyplot as plt
-
 
 class WoCal:
     # WoCal object is initialized by signing into MongoDB.
@@ -29,7 +28,7 @@ class WoCal:
                 self._username = str(self._usernameEntry.get())
                 self._password = str(self._passwordEntry.get())
                 if self._username != 'Enter Username' and self._password != 'Enter Password':
-                    self.client = pym.MongoClient(self._url.format(self._username, self._password))
+                    self.client = MongoClient(self._url.format(self._username, self._password))
                     try:
                         self.client.admin.command('ismaster')
                         # WoCal is the database that holds the caloriesPerDay and workoutPerDay collections that we will be inserted into.
@@ -48,7 +47,7 @@ class WoCal:
                     # Save user login credentials to text file if 'rememberMe' checkbutton is selected by user.
                     if self._rememberMe.get():
                         # Determine user's operating system, to ensure login.txt file is saved to project directory.
-                        self.uMachine = platform.system()
+                        self.uMachine = system()
                         if self.uMachine == 'Darwin' or 'Linux':
                             self.filename = os.getcwd() + '/login.txt'
                         elif self.uMachine == 'Windows':
@@ -134,7 +133,7 @@ class WoCal:
                 self._rememberMeCheckBox.config(text='Stay signed-In?', bg='slategray3')
 
         # Determine user machine OS, and check if login.text file exists.
-        self.uMachine = platform.system()
+        self.uMachine = system()
         self.filename = None
         self.fileExists = None
         if self.uMachine == 'Darwin' or 'Linux':
@@ -152,12 +151,11 @@ class WoCal:
             with open(self.filename, "r") as self.file:
                 for line in self.file:
                     self._credentials = line.split(':')
-                    # TODO
                 self._username = self._credentials[0]
                 self._password = self._credentials[1]
             print('[Successful login for {0}, into the Database]'.format(self._username))
             self._url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self._username, self._password)
-            self.client = pym.MongoClient(self._url)
+            self.client = MongoClient(self._url)
             self.client.admin.command('ismaster')
             self.db = self.client['WOCAL']
             self.methodsScreen(self.master)
@@ -235,7 +233,7 @@ class WoCal:
             self.master.quit()
             if self.fileExists:
                 os.remove(self.filename)
-            time.sleep(1)
+            sleep(1)
             print("[" + self._username + " has been logged out of the database]")
             self.root = tk.Tk()
             self.__init__(self.root)

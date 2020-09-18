@@ -262,7 +262,7 @@ class WoCal:
         self._topFrame.grid_columnconfigure(0, weight=1)
         self._topFrame.grid_columnconfigure(1, weight=1)
         self._topFont = font.Font(self._topFrame, family='Times NEW ROMAN', size=20, weight='bold', underline=False)
-        self._welcomeLabel = tk.Label(self._topFrame, text='Welcome,\n{0}'.format(self.username), font=self._topFont, anchor='w', bg='gray25', fg='ivory')
+        self._welcomeLabel = tk.Label(self._topFrame, text='Welcome,\n{0}'.format(self._username), font=self._topFont, anchor='w', bg='gray25', fg='ivory')
         self._welcomeLabel.grid(row=0, column=0, sticky='ew', padx=18, pady=2)
         self._logOffButton = tk.Button(self._topFrame, text='LogOff', font='HELVETICA 18 bold', relief='raised', bd=2)
         self._logOffButton.config(command=lambda: logOff(), highlightbackground='indianred')
@@ -1316,10 +1316,10 @@ class WoCal:
             self._muscleGroups = []
 
             # Fill calories list for last 7 days.
-            for self._date in self._sevenDays:
-                for self._workout in self.workoutPerDay.find({'date': self._date}):
+            for self._x in self._sevenDays:
+                for self._workout in self.workoutPerDay.find({'date': self._x}):
                     self._reps.append(self._workout['reps'])
-
+            print(self._reps)
 
         self._tFborder = tk.Frame(self.master, bg='thistle1')
         self._topFrame = tk.Frame(self._tFborder, bg='gray25')

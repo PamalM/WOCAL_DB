@@ -1291,6 +1291,38 @@ class WoCal:
             self._alpha.minsize(500, 300)
             self._alpha.mainloop()
 
+        def sevenDayForcast():
+            self._formatMonthNumber = {1: '01', 2: '02', 3: '03',
+                                       4: '04', 5: '05', 6: '06',
+                                       7: '07', 8: '08', 9: '09',
+                                       10: '10', 11: '11', 12: '12'}
+
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            self._day = self.currentDate.day
+
+            self._sevenDays = []
+            self._date = datetime.date(int(self._year), int(self._month), int(self._day))
+            for x in range(1, 8):
+                self._sevenDays.append(self._date.strftime('%Y-%m-%d'))
+                self._date += datetime.timedelta(days=-1)
+
+            # For the last 7 days. Each index in each array corresonds to the other index. (eg. self._reps[2] relates to self._workouts[2], etc).
+            self._reps = []
+            self._sets = []
+            self._weights = []
+            self._workouts = []
+            self._muscleGroups = []
+
+            self.workoutPerDay = self.db['workoutPerDay']
+
+            # Fill calories list for last 7 days.
+            for self._date in self._sevenDays:
+                for self._workout in self.workoutPerDay.find({'date': self._date}):
+                    self._reps.append(self._workout['reps'])
+            print(self._reps)
+
+
         self.master = window
 
         self._tFborder = tk.Frame(self.master, bg='thistle1')
@@ -1306,7 +1338,7 @@ class WoCal:
         self._todayStatButton.config(relief='raised', highlightthickness=4)
         self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
         self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
-        self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: print(''))
+        self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: sevenDayForcast())
         self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
         self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
         self._last30DaysButton.config(relief='raised', highlightthickness=4, command=lambda: print(''))

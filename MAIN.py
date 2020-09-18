@@ -10,6 +10,7 @@ from pymongo.errors import ConnectionFailure
 from pymongo.errors import OperationFailure
 import matplotlib.pyplot as plt
 
+
 class WoCal:
     # WoCal object is initialized by signing into MongoDB.
     def __init__(self, window):

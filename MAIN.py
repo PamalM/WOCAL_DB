@@ -453,7 +453,7 @@ class WoCal:
             self._reps = self.reps
             self._sets = self.sets
             self._weights = self._weights
-            self._date = str(self._cal.selection_get().year) + "-" + str(self._cal.selection_get().month) + "-" + str(self._cal.selection_get().day)
+            self._date = datetime.date(int(self._cal.selection_get().year), int(self._cal.selection_get().month), int(self._cal.selection_get().day)).strftime('%Y-%m-%d')
 
             # Write contents to database.
             self._query = {'date': self._date, 'muscleGroup': self._bodyGroup, 'workout': self._workout, 'sets': self._sets, 'reps': self._reps, 'weight': self._weights}
@@ -1319,7 +1319,11 @@ class WoCal:
             for self._x in self._sevenDays:
                 for self._workout in self.workoutPerDay.find({'date': self._x}):
                     self._reps.append(self._workout['reps'])
-            print(self._reps)
+                    self._sets.append(self._workout['sets'])
+                    self._weights.append(self._workout['weight'])
+                    self._workouts.append(self._workout['workout'])
+                    self._muscleGroups.append(self._workout['muscleGroup'])
+            
 
         self._tFborder = tk.Frame(self.master, bg='thistle1')
         self._topFrame = tk.Frame(self._tFborder, bg='gray25')

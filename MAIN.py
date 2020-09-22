@@ -11,6 +11,23 @@ from pymongo.errors import OperationFailure
 import matplotlib.pyplot as plt
 
 
+# Class is utilized to provide typography and color attributes to console outputs.
+class Console:
+    purple = '\033[95m'
+    cyan = '\033[96m'
+    darkCyan = '\033[36m'
+    brightBlue = '\u001b[34;1m'
+    blue = '\033[94m'
+    green = '\033[92m'
+    yellow = '\033[93m'
+    red = '\033[91m'
+    magenta = '\u001b[35m'
+    bgBlue = '\u001b[44m'
+    bold = '\033[1m'
+    underline = '\033[4m'
+    end = '\033[0m'
+
+
 class WoCal:
 
     # Initiate WoCal object by signing into MongoDB.
@@ -21,7 +38,7 @@ class WoCal:
         self.currentDate = datetime.datetime.now()
 
         # Login credentials.
-        self._username = None
+        self.username = None
         self.password = None
         self.url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority"
 
@@ -49,7 +66,7 @@ class WoCal:
                     # Transition to next screen.
                     self.master.destroy()
                     self.master.quit()
-                    print('[{0} has signed into the DB]'.format(self.username))
+                    print(Console.blue + Console.bold + '[{0} has signed into the DB]'.format(self.username) + Console.end)
 
                     # Save user login credentials to text file if 'rememberMe' checkbutton is selected by user.
                     if self._rememberMe.get():
@@ -66,7 +83,7 @@ class WoCal:
                                 self.file.write(self.username + ":" + self.password)
                             self.file.close()
                         else:
-                            print('[login.txt couldn\'t be saved to the project directory.]]')
+                            print(Console.red + Console.underline + Console.bold + '[login.txt couldn\'t be saved to the project directory.]]' + Console.end)
 
                     # Transfer to next screen.
                     self.root = tk.Tk()
@@ -75,7 +92,7 @@ class WoCal:
 
             # Unable to establish connection; Notify user with alert window.
             except OperationFailure and ConnectionFailure and ValueError:
-                print('[Authentication Error!]')
+                print(Console.red + Console.bold + Console.underline + '[Authentication Error!]' + Console.end)
                 self._alert = tk.Tk()
                 self._alert.grid_rowconfigure(0, weight=1)
                 self._alert.grid_columnconfigure(0, weight=1)
@@ -147,7 +164,7 @@ class WoCal:
             self.filename = os.getcwd() + '\\login.txt'
             self.fileExists = os.path.exists(self.filename)
 
-        print('[Awaiting user sign-in for DB] ...')
+        print(Console.yellow + Console.bold + '[Waiting for user to login to DB...]' + Console.end)
         # Prompt user for sign-in:
         if not self.fileExists:
             # Top Frame.
@@ -206,10 +223,13 @@ class WoCal:
             with open(self.filename, "r") as self.file:
                 for line in self.file:
                     self._credentials = line.split(':')
-                self._username = self._credentials[0]
-                self._password = self._credentials[1]
-            print('[Successful login for {0}, into the Database]'.format(self._username))
-            self.url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self._username, self._password)
+                self.username = self._credentials[0]
+                self.password = self._credentials[1]
+
+            print(Console.darkCyan + Console.bold + '[Remembered login for: ' + Console.yellow + Console.underline + '{0}'.format(self.username) + Console.end
+                  + Console.darkCyan + Console.bold + ']' + Console.end)
+
+            self.url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self.username, self.password)
             self.client = MongoClient(self.url)
             self.client.admin.command('ismaster')
             # DB collections.
@@ -245,9 +265,9 @@ class WoCal:
                 self.master.quit()
                 os.remove(self.filename)
                 sleep(1)
-                print("[{0} has been logged out of the database]".format(self.username))
+                print(Console.purple + Console.bold + "[{0} has been logged out of the database]".format(self.username) + Console.end)
             except FileNotFoundError:
-                pass
+                print(Console.purple + Console.bold + "[Logged out of the database]" + Console.end)
             finally:
                 self.root = tk.Tk()
                 self.__init__(self.root)
@@ -262,7 +282,8 @@ class WoCal:
         self._topFrame.grid_columnconfigure(0, weight=1)
         self._topFrame.grid_columnconfigure(1, weight=1)
         self._topFont = font.Font(self._topFrame, family='Times NEW ROMAN', size=20, weight='bold', underline=False)
-        self._welcomeLabel = tk.Label(self._topFrame, text='Welcome,\n{0}'.format(self._username), font=self._topFont, anchor='w', bg='gray25', fg='ivory')
+        self._welcomeLabel = tk.Label(self._topFrame, text='Welcome,\n{0}'.format(self.username), font=self._topFont)
+        self._welcomeLabel.config(anchor='w', bg='gray25', fg='ivory')
         self._welcomeLabel.grid(row=0, column=0, sticky='ew', padx=18, pady=2)
         self._logOffButton = tk.Button(self._topFrame, text='LogOff', font='HELVETICA 18 bold', relief='raised', bd=2)
         self._logOffButton.config(command=lambda: logOff(), highlightbackground='indianred')
@@ -290,7 +311,7 @@ class WoCal:
         self._trackWorkoutButton.grid(row=1, column=1, sticky='nsew', padx=(2, 18), pady=(4, 14))
         self._bottomFrame.pack(fill=tk.BOTH, expand=True, padx=18, pady=8)
 
-        # Window attributes.
+        # Method screen window attributes.
         self.master.title('WOCAL_DB')
         self.master.focus_set()
         self.master.config(bg='royalblue2')
@@ -1293,6 +1314,32 @@ class WoCal:
             self._alpha.mainloop()
 
         def sevenDayForcast():
+
+            def closeWindow():
+                self._alpha.destroy()
+                self._alpha.quit()
+
+            # Helper method for view_Workout.
+            def get_Workout_Index():
+                self._value = self._listbox.get(self._listbox.curselection())
+                self._indexes = []
+                for self._items in self._listbox.get(0, 'end'):
+                    self._indexes.append(self._items)
+                return self._indexes.index(self._value)
+
+            def view_Workout(index):
+                # Enable select button to proceed to next gui.
+                if self._selectButton['state'] == tk.DISABLED:
+                    self._selectButton['state'] = tk.NORMAL
+
+                print(self._workouts[index])
+                print(self._muscleGroups[index])
+                print(self._sets[index])
+                print(self._reps[index])
+                print(self._weights[index])
+
+                self._alpha.after(1, self._alpha.update())
+
             self._formatMonthNumber = {1: '01', 2: '02', 3: '03',
                                        4: '04', 5: '05', 6: '06',
                                        7: '07', 8: '08', 9: '09',
@@ -1323,6 +1370,48 @@ class WoCal:
                     self._weights.append(self._workout['weight'])
                     self._workouts.append(self._workout['workout'])
                     self._muscleGroups.append(self._workout['muscleGroup'])
+
+            print('reps: ', self._reps)
+            print('sets: ', self._sets)
+            print('weights: ', self._weights)
+            print('workout: ', self._workouts)
+            print('muscleGroup:', self._muscleGroups)
+
+            self._alpha = tk.Tk()
+
+            self._topFrame = tk.Frame(self._alpha, bg='gray25')
+            self._topLabel = tk.Label(self._topFrame, text='Select specific workout to view trend for:', font='HELVETICA 20 bold', bg='gray25', fg='mediumseagreen')
+            self._topLabel.pack(fill=tk.X, padx=30, pady=(10, 4), expand=True)
+            self._listbox = tk.Listbox(self._topFrame, font='TIMES 20 bold', justify='center', selectmode=tk.SINGLE)
+            self._listbox.pack(fill=tk.BOTH, padx=20, pady=10, expand=True)
+
+            # Method checks to ensure we don't add duplicate workout tags; (Ensure unique workout names only.)
+            def contains(item):
+                if item in self._listbox.get(0, 'end'):
+                    return True
+                else:
+                    return False
+
+            # Insert unique workouts into listbox.
+            for self._index in range(0, len(self._workouts)):
+                if contains('[' + self._muscleGroups[self._index] + '] ' + self._workouts[self._index]):
+                    pass
+                else:
+                    self._listbox.insert(tk.END, '[' + self._muscleGroups[self._index] + '] ' + self._workouts[self._index])
+
+            self._selectButton = tk.Button(self._topFrame, text='View Trend', highlightbackground='springgreen3', fg='ivory', font='HELVETICA 20 bold')
+            self._selectButton.config(state=tk.DISABLED, relief='raised')
+            self._selectButton.pack(fill=tk.BOTH, padx=20, pady=10, expand=True)
+            self._closeButton = tk.Button(self._topFrame, text='Close', highlightbackground='indianred', fg='ivory', font='HELVETICA 20 bold')
+            self._closeButton.config(command=lambda: closeWindow(), relief='raised')
+            self._closeButton.pack(fill=tk.BOTH, padx=20, pady=10, expand=True)
+            self._topFrame.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+
+            self._alpha.config(bg='lightskyblue1')
+            self._listbox.bind("<<ListboxSelect>>", lambda cmd: view_Workout(get_Workout_Index()))
+            self._alpha.title('Last 7 Days:')
+            self._alpha.minsize(400, 400)
+            self._alpha.mainloop()
 
 
         self._tFborder = tk.Frame(self.master, bg='thistle1')

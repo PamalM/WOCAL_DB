@@ -189,9 +189,11 @@ class WoCal:
             self._passwordEntry.insert(0, 'Enter Password')
             self._rememberMe = tk.BooleanVar(self.master)
             self._rememberMe.set(False)
-            self._rememberMeCheckBox = tk.Checkbutton(self._middleFrame, text='Stay signed-In?', variable=self._rememberMe, command=remember, bg='slategray3')
+            self._rememberMeCheckBox = tk.Checkbutton(self._middleFrame, text='Stay signed-In?', variable=self._rememberMe)
+            self._rememberMe.config(command=remember, bg='slategray3')
             self._rememberMeCheckBox.grid(row=2, column=0, pady=(0, 14), sticky='ns', padx=20)
-            self._signInButton = tk.Button(self._middleFrame, text='Sign In!', height=3, font='HELVETICA 20 bold', relief='ridge', bd=1, command=lambda: signIn())
+            self._signInButton = tk.Button(self._middleFrame, text='Sign In!', height=3, font='HELVETICA 20 bold', relief='ridge', bd=1)
+            self._signInButton.config(command=lambda: signIn())
             self._signInButton.config(highlightbackground='lavender')
             self._signInButton.grid(row=3, column=0, sticky='nsew', pady=10, padx=18)
             self._signInButton.focus_set()
@@ -206,7 +208,8 @@ class WoCal:
             # Bottom Frame.
             self._bottomFrame = tk.Frame(self.master, bg='gray25')
             self._bottomFont = font.Font(self._topFrame, family='TIMES NEW ROMAN', size=10)
-            self._bottomLabel = tk.Label(self._bottomFrame, text='Powered through MongoDB\nCreated by Pamal Mangat', font=self._bottomFont, bg='lavender')
+            self._bottomLabel = tk.Label(self._bottomFrame, text='Powered through MongoDB\nCreated by Pamal Mangat')
+            self._bottomLabel.config(font=self._bottomFont, bg='lavender')
             self._bottomLabel.pack(fill=tk.BOTH, padx=18, pady=10, expand=True)
             self._bottomFrame.pack(padx=20, pady=10, fill=tk.BOTH, expand=True)
 
@@ -226,13 +229,12 @@ class WoCal:
                 self.username = self._credentials[0]
                 self.password = self._credentials[1]
 
-            print(Console.darkCyan + Console.bold + '[Remembered login for: ' + Console.yellow + Console.underline + '{0}'.format(self.username) + Console.end
-                  + Console.darkCyan + Console.bold + ']' + Console.end)
+            print(Console.darkCyan + Console.bold + '[Remembered login for: ' + Console.yellow + Console.underline + '{0}'.format(self.username)
+                  + Console.end + Console.darkCyan + Console.bold + ']' + Console.end)
 
             self.url = "mongodb+srv://{0}:{1}@wocal.szoqb.mongodb.net/WOCAL?retryWrites=true&w=majority".format(self.username, self.password)
             self.client = MongoClient(self.url)
             self.client.admin.command('ismaster')
-            # DB collections.
             self.db = self.client['WOCAL']
             self.workoutPerDay = self.db['workoutPerDay']
             self.calPerDay = self.db['calPerDay']
@@ -474,10 +476,13 @@ class WoCal:
             self._reps = self.reps
             self._sets = self.sets
             self._weights = self._weights
-            self._date = datetime.date(int(self._cal.selection_get().year), int(self._cal.selection_get().month), int(self._cal.selection_get().day)).strftime('%Y-%m-%d')
+            self._date = datetime.date(int(self._cal.selection_get().year),
+                                       int(self._cal.selection_get().month),
+                                       int(self._cal.selection_get().day)).strftime('%Y-%m-%d')
 
-            # Write contents to database.
-            self._query = {'date': self._date, 'muscleGroup': self._bodyGroup, 'workout': self._workout, 'sets': self._sets, 'reps': self._reps, 'weight': self._weights}
+            # Prepare and insert query into DB collection.
+            self._query = {'date': self._date, 'muscleGroup': self._bodyGroup, 'workout': self._workout,
+                           'sets': self._sets, 'reps': self._reps, 'weight': self._weights}
             self._insert = self.workoutPerDay.insert_one(self._query)
 
             # Transition back to main-menu.

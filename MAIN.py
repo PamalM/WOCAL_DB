@@ -1323,7 +1323,7 @@ class WoCal:
                     self._weights.append(self._workout['weight'])
                     self._workouts.append(self._workout['workout'])
                     self._muscleGroups.append(self._workout['muscleGroup'])
-            
+
 
         self._tFborder = tk.Frame(self.master, bg='thistle1')
         self._topFrame = tk.Frame(self._tFborder, bg='gray25')

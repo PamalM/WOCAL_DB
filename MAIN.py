@@ -11,7 +11,7 @@ from pymongo.errors import OperationFailure
 import matplotlib.pyplot as plt
 
 
-# Class is utilized to provide typography and color attributes to console outputs.
+# Class is utilized to provide typography and color attributes to console-outputs.
 class Console:
     purple = '\033[95m'
     cyan = '\033[96m'

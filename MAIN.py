@@ -260,6 +260,8 @@ class WoCal:
 
         # Direct user to specific method depending on tag (specified from/by button).
         def terminal(tag):
+            self._master.destroy()
+            self._master.quit()
             self._root = tk.Tk()
             if tag == 1:
                 self.inputCalories(self._root)
@@ -1062,8 +1064,180 @@ class WoCal:
 
         # Back to main-menu.
         def back():
-            self._alpha.destroy()
-            self._alpha.quit()
+            self._master.destroy()
+            self._master.quit()
+            self.root = tk.Tk()
+            self.methodsScreen(self.root)
+            self.root.mainloop()
+
+        # Styling method for entry.
+        def specDayEntry_Focus(event):
+            if self._specDayEntry.get() == 'MM/DD/YYYY':
+                self._specDayEntry.delete(0, tk.END)
+                self._specDayEntry.insert(0, '')
+                self._specDayEntry.config(bg='powderblue', fg='gray25')
+            elif self._specDayEntry.get() == '':
+                self._specDayEntry.insert(0, 'MM/DD/YYYY')
+                self._specDayEntry.config(bg='lightblue3', fg='gray25')
+
+        # Method extracts date from entry and proceeds to next GUI.
+        def specDayEntryBind():
+            try:
+                self._grab = str(self._specDayEntry.get()).split('/')
+                self._m = int(self._grab[0])
+                self._d = int(self._grab[1])
+                self._y = int(self._grab[2])
+                self._date = datetime.datetime(self._y, self._m, self._d).strftime('%Y-%m-%d')
+                self._master.destroy()
+                self._master.quit()
+                viewDay(self._date)
+
+            except (ValueError, IndexError) as e:
+
+                def close():
+                    self._valErrorWin.destroy()
+                    self._valErrorWin.quit()
+
+                self._valErrorWin = tk.Tk()
+
+                self._font1 = font.Font(family='TIMES NEW ROMAN', size=22, weight='bold')
+                self._label1 = tk.Label(self._valErrorWin, text='Couldn\'t process that date.\nPlease try again!', font=self._font1)
+                self._label1.pack(padx=20, fill=tk.BOTH, pady=10)
+
+                self._closeButton = tk.Button(self._valErrorWin, text='CLOSE', font='HELVETICA 18 bold', highlightbackground='gray40', fg='ivory')
+                self._closeButton.config(relief='raised', command=lambda: close())
+                self._closeButton.pack(fill=tk.X, padx=20, pady=10)
+
+                self._valErrorWin.title('ALERT!')
+                self._valErrorWin.minsize(300, 100)
+                self._valErrorWin.resizable(False, False)
+                self._valErrorWin.config(bg='indianred3')
+                self._valErrorWin.mainloop()
+
+        # View workout log for specified day.
+        def viewDay(date):
+            # Close Window.
+            def back():
+                self._alpha.destroy()
+                self._alpha.quit()
+                self._root = tk.Tk()
+                self.viewWorkout(self._root)
+                self._root.mainloop()
+
+            # Get workout results for that date.
+            for self._docs in self.workoutPerDay.find({'date': date}):
+                self._workout = {'date': date, 'muscleGroup': self._docs['muscleGroup'], 'workout': self._docs['workout'],
+                              'sets': self._docs['sets'], 'reps': self._docs['reps'], 'weight': self._docs['weight']}
+                self._workouts.append(self._workout)
+
+            self._alpha = tk.Tk()
+
+            self._topFrame = tk.Frame(self._alpha, bg='gray25', bd=4, relief='ridge')
+            # Textbox to hold workout history.
+            self._textBox = tk.Listbox(self._topFrame, justify='center', font='HELVECTICA 20 bold', bg='gray25', relief='groove', bd=4)
+
+            try:
+                for item in range(0, len(self._workouts)):
+                    self._textBox.insert(tk.END, self._workouts[item]['workout'].upper())
+                    self._textBox.itemconfig(tk.END, bg='mediumorchid2')
+                    self._textBox.insert(tk.END, self._workouts[item]['muscleGroup'])
+                    self._textBox.itemconfig(tk.END, bg='lightgoldenrod')
+                    self._textBox.insert(tk.END, '{0} sets'.format(len(self._workouts[item]['sets'])))
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
+                    self._textBox.insert(tk.END, '{0} reps'.format(self._workouts[item]['reps']))
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
+                    self._textBox.insert(tk.END, '{0} lbs'.format(self._workouts[item]['weight']))
+                    self._textBox.itemconfig(tk.END, bg='ivory', fg='gray25')
+                    self._textBox.insert(tk.END, '')
+                    self._textBox.itemconfig(tk.END, bg='indianred3')
+
+            except IndexError:
+                if self._textBox.size() == 0:
+                    self._textBox.insert(0, 'NO DATA')
+                    self._textBox.itemconfig(0, bg='indianred3', fg='ivory')
+            finally:
+                if self._textBox.size() == 0:
+                    self._textBox.insert(0, 'NO DATA')
+                    self._textBox.itemconfig(0, bg='indianred3', fg='ivory')
+
+            self._textBox.pack(padx=25, pady=25, fill=tk.BOTH, expand=True)
+            self._topFrame.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+            self._bottomFrame = tk.Frame(self._alpha, bg='gray25', highlightbackground='ivory')
+            self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 20 bold', highlightbackground='indianred3', fg='ivory', command=lambda: back())
+            self._backButton.config(relief='raised')
+            self._backButton.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+            self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
+
+            self._alpha.title(date)
+            self._alpha.config(bg='thistle1')
+            self._alpha.minsize(500, 300)
+            self._alpha.mainloop()
+
+        # View workout trend for previous 7-days.
+        def sevenDayForcast():
+
+            # Back to View workout window.
+            def closeWindow():
+                self._alpha.destroy()
+                self._alpha.quit()
+
+            # User can view graph trend for specific workout for previous 7 days.
+            # I choose to display each workout individually rather than scattering everything into one graph so its easier to read.
+            def viewTrend():
+                self._selectedWorkout = self._listbox.get(self._listbox.curselection())
+
+                self._alpha.after(1, self._alpha.update())
+
+            # Set pointer to today's date and work backwards.
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            self._day = self.currentDate.day
+
+            # Populate workouts list with previous 7 days of workouts.
+            self._sevenDays = []
+            self._date = datetime.date(int(self._year), int(self._month), int(self._day))
+            for x in range(1, 8):
+                self._sevenDays.append(self._date.strftime('%Y-%m-%d'))
+                self._date += datetime.timedelta(days=-1)
+            for self._day in self._sevenDays:
+                for self._doc in self.workoutPerDay.find({'date': self._day}):
+                    self._workout = {'date': self._day, 'muscleGroup': self._doc['muscleGroup'], 'workout': self._doc['workout'],
+                                     'sets': self._doc['sets'], 'reps': self._doc['reps'], 'weight': self._doc['weight']}
+                    self._workouts.append(self._workout)
+
+            # 7 day forecast window.
+            self._alpha = tk.Tk()
+
+            self._topFrame = tk.Frame(self._alpha, bg='gray25')
+            self._topLabel = tk.Label(self._topFrame, text='Select specific workout to view trend for:', font='HELVETICA 20 bold', bg='gray25', fg='mediumseagreen')
+            self._topLabel.pack(fill=tk.X, padx=30, pady=(10, 4), expand=True)
+            self._listbox = tk.Listbox(self._topFrame, font='TIMES 20 bold', justify='center', selectmode=tk.SINGLE)
+            self._listbox.pack(fill=tk.BOTH, padx=20, pady=10, expand=True)
+            # Fill listbox with data above. (Make sure to only show unique workouts, no duplicates)
+            self._uniqueWorkouts = []
+            for self._workout in self._workouts:
+                self._uniqueWorkouts.append(self._workout['workout'])
+            self._uniqueWorkouts = list(set(self._uniqueWorkouts))
+            for self._workout in self._uniqueWorkouts:
+                self._listbox.insert(tk.END, self._workout.upper())
+
+            self._closeButton = tk.Button(self._topFrame, text='Close', highlightbackground='indianred', fg='ivory', font='HELVETICA 20 bold')
+            self._closeButton.config(command=lambda: closeWindow(), relief='raised')
+            self._closeButton.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+            self._topFrame.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+
+            # 7 day forecase window attributes.
+            self._alpha.config(bg='lightskyblue1')
+            self._listbox.bind("<<ListboxSelect>>", lambda cmd: viewTrend())
+            self._alpha.title('Last 7 Days:')
+            self._alpha.minsize(400, 400)
+            self._alpha.mainloop()
+
+        # workoutPerDay attributes.
+        self._workout = {'date': '', 'muscleGroup': '', 'workout': '', 'sets': [], 'reps': [], 'weight': []}
+        # Empty list will hold all the workouts that are returned in the query.
+        self._workouts = []
 
         # View Workout Window.
         self._master = window
@@ -1077,7 +1251,7 @@ class WoCal:
         self._topFrame.grid_rowconfigure(4, weight=1)
         self._topFrame.grid_columnconfigure(0, weight=1)
         self._todayStatButton = tk.Button(self._topFrame, text='TODAY\'S WORKOUT', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
-        self._todayStatButton.config(command=lambda: viewToday())
+        self._todayStatButton.config(command=lambda: viewDay(datetime.datetime(self.currentDate.year, self.currentDate.month, self.currentDate.day).strftime('%Y-%m-%d')))
         self._todayStatButton.config(relief='raised', highlightthickness=4)
         self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
         self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')

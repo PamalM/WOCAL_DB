@@ -260,8 +260,6 @@ class WoCal:
 
         # Direct user to specific method depending on tag (specified from/by button).
         def terminal(tag):
-            self._master.destroy()
-            self._master.quit()
             self._root = tk.Tk()
             if tag == 1:
                 self.inputCalories(self._root)
@@ -350,6 +348,7 @@ class WoCal:
         self._master.minsize(600, 400)
         self._master.mainloop()
 
+    # Method inserts calorie(s) amount & description into db, for given day.
     def inputCalories(self, window):
 
         # calPerDay Attributes.
@@ -480,6 +479,9 @@ class WoCal:
         self._backButton.grid(row=1, column=0, sticky='nsew', padx=18, pady=4)
         self._bottomFrame.pack(fill=tk.BOTH, padx=18, pady=(0, 8), expand=True)
 
+        # Run update calories for pre-selected day (today) upon entry into window.
+        updateDay()
+
         # Input Calories window attributes.
         self._master.config(bg='royalblue2')
         self._master.title('RECORD CALORIES')
@@ -491,14 +493,627 @@ class WoCal:
         self._master.minsize(500, 550)
         self._master.mainloop()
 
+    # Method inserts workout(s) log into db for given day.
     def inputWorkout(self, window):
+
+        # [2] Styling method for weight and rep entries.
+        def weightEntry_Focus(event):
+            if str(self._weightEntry.get()) == 'Weight (lbs)':
+                self._weightEntry_tkvar.set('')
+            elif str(self._weightEntry.get()) == '':
+                self._weightEntry_tkvar.set('Weight (lbs)')
+
+        def repEntry_Focus(event):
+            if str(self._repEntry.get()) == '# Reps':
+                self._repEntry_tkvar.set('')
+            elif str(self._repEntry.get()) == '':
+                self._repEntry_tkvar.set('# Reps')
+
+        # Return back to main-menu.
+        def back():
+            self._master.destroy()
+            self._master.quit()
+            self._root = tk.Tk()
+            self.methodsScreen(self._root)
+            self._root.mainloop()
+
+        def updateWorkoutList():
+            self._bodyGroup = str(self._selectedMuscleGroup.get())
+            self._array = []
+            if self._bodyGroup == 'CHEST' or 'BACK' or 'SHOULDERS' or 'ARMS' or 'ABS' or 'LEGS':
+                self._label2['state'] = 'normal'
+                self._workoutSelector['state'] = 'normal'
+                self._workoutSelector['menu'].delete(0, tk.END)
+
+                # (Assigning tags to each muscle Group) Chest = 1, Back = 2, Shoulders = 3, Arms = 4, Abs = 5, Legs = 6.
+                self._muscleG_Tags = {1: self._chestWorkouts, 2: self._backWorkouts, 3: self._shoulderWorkouts, 4: self._armWorkouts, 5: self._coreWorkouts, 6: self._legsWorkouts}
+                self._muscleTag = 0
+
+                if self._bodyGroup == 'CHEST':
+                    self._workout.set(self._chestWorkouts[0])
+                    self._muscleTag = 1
+                elif self._bodyGroup == 'BACK':
+                    self._workout.set(self._backWorkouts[0])
+                    self._muscleTag = 2
+                elif self._bodyGroup == 'SHOULDERS':
+                    self._workout.set(self._shoulderWorkouts[0])
+                    self._muscleTag = 3
+                elif self._bodyGroup == 'ARMS':
+                    self._workout.set(self._armWorkouts[0])
+                    self._muscleTag = 4
+                elif self._bodyGroup == 'ABS':
+                    self._workout.set(self._coreWorkouts[0])
+                    self._muscleTag = 5
+                elif self._bodyGroup == 'LEGS':
+                    self._workout.set(self._legsWorkouts[0])
+                    self._muscleTag = 6
+
+                for item in self._muscleG_Tags.get(self._muscleTag):
+                    self._array.append(item)
+
+                self._workoutSelector.pack_forget()
+                #self._workout = tk.StringVar()
+                self._workoutSelector = tk.OptionMenu(self._middleFrame, self._workout, *self._array, command=lambda cmd: updateSetRepBox())
+                self._workoutSelector['menu'].config(font=('calibri', 20), relief='raised', bd=4)
+                self._workout.set('-')
+                self._workoutSelector.grid(row=3, column=0, sticky='ew', padx=6, pady=(0, 12))
+
+        # Enables (unlocks) all widgets when user fills out form correctly.
+        def updateSetRepBox():
+            self._setRepBox['state'] = 'normal'
+            self._label3['state'] = 'normal'
+            self._setRepBox['bg'] = 'snow'
+            self._addRow['state'] = 'normal'
+            self._weightEntry['state'] = 'normal'
+            self._repEntry['state'] = 'normal'
+
+        # Insert (+) set into selected workout.
+        def addRows():
+            try:
+                self._setNum += 1
+                if str(self._weightEntry.get()) != 'Weight (lbs)':
+                    try:
+                        self._sets.append(int(self._setNum))
+                        self._reps.append(int(self._repEntry.get()))
+                        self._weights.append(float(self._weightEntry.get()))
+                        self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps - {2} lbs.'.format(self._setNum, self._repEntry.get(), self._weightEntry.get()))
+                    except ValueError:
+                        raise ValueError
+                else:
+                    try:
+                        self._sets.append(int(self._setNum))
+                        self._reps.append(int(self._repEntry.get()))
+                        self._weights.append(0.0)
+                        self._setRepBox.insert(tk.END, 'Set {0}: {1} Reps'.format(self._setNum, self._repEntry.get()))
+                    except ValueError:
+                        raise ValueError
+                self._repEntry_tkvar.set('')
+                if self._setNum > 0:
+                    self._delRow['state'] = 'normal'
+                    self._addButton['state'] = 'normal'
+                else:
+                    self._delRow['state'] = 'disabled'
+                    self._addButton['state'] = 'disabled'
+                self._master.update()
+
+            except ValueError:
+                self._setNum -= 1
+
+                def closeWindow():
+                    self._alertWindow.destroy()
+                    self._alertWindow.quit()
+
+                self._alertWindow = tk.Tk()
+
+                self._label1 = tk.Label(self._alertWindow, text='Please ensure you have entered a \nvalid rep amount and weight amount. ', fg='ivory', bg='indianred3')
+                self._label1.config(font='HELVETICA 16 bold')
+                self._label2 = tk.Label(self._alertWindow, text='If no weight for the workout, than leave entry as is!')
+                self._label2.config(bg='indianred3', fg='bisque', font='HELVETICA 12 bold')
+                self._label1.pack(pady=(10, 6), padx=20, fill=tk.X)
+                self._label2.pack(padx=20, fill=tk.X)
+                self._closeButton = tk.Button(self._alertWindow, text='CLOSE MESSAGE', font='HELVETICA 16 bold', highlightbackgroun='gray25', fg='ivory')
+                self._closeButton.config(command=lambda: closeWindow())
+                self._closeButton.pack(fill=tk.X, padx=20, pady=10)
+
+                # Alert window attributes.
+                self._alertWindow.config(bg='indianred3')
+                self._alertWindow.title('ALERT')
+                self._alertWindow.minsize(350, 150)
+                self._alertWindow.resizable(False, False)
+                self._alertWindow.bind('<Return>', lambda cmd: closeWindow())
+                self._alertWindow.mainloop()
+
+        # Delete (-) set from selected workout.
+        def delRows():
+            self._setNum -= 1
+            if self._setNum > 0:
+                self._delRow['state'] = 'normal'
+                self._addButton['state'] = 'normal'
+            else:
+                self._delRow['state'] = 'disabled'
+                self._addButton['state'] = 'disabled'
+
+            self._master.update()
+            self._setRepBox.delete(tk.END)
+            self._sets.pop()
+            self._reps.pop()
+            self._weights.pop()
+
+        # Insert workout statistics into db, for given day.
+        def insertDocument():
+            self._bodyGroup = str(self._selectedMuscleGroup.get())
+            self._workout = str(self._workout.get())
+            self._reps = self._reps
+            self._sets = self._sets
+            self._weights = self._weights
+            self._date = datetime.date(int(self._cal.selection_get().year),
+                                       int(self._cal.selection_get().month),
+                                       int(self._cal.selection_get().day)).strftime('%Y-%m-%d')
+
+            # Prepare and insert query into DB collection.
+            self._query = {'date': self._date, 'muscleGroup': self._bodyGroup, 'workout': self._workout,
+                           'sets': self._sets, 'reps': self._reps, 'weight': self._weights}
+            self._insert = self.workoutPerDay.insert_one(self._query)
+
+            # Transition back to main-menu.
+            self._master.destroy()
+            self._master.quit()
+            self.root = tk.Tk()
+            self.methodsScreen(self.root)
+            self.root.mainloop()
+
+        # workoutPerDay attributes.
+        self._date = None
+        self._muscleGroup = None
+        self._workout = None
+        self._sets = []
+        self._reps = []
+        self._weights = []
+
+        # Tracker variables that holds the number of sets (entires) in the listbox.
+        self._setNum = 0
+
+        # Lists containing the valid (current) workouts and muscleGroups the user can select from.
+        self._muscleGroups = ['CHEST', 'BACK', 'SHOULDERS', 'ARMS', 'ABS', 'LEGS']
+        self._chestWorkouts = ['Push-ups', 'DB Bench Press', 'DB One-Arm Hammer Press', 'DB Fly']
+        self._backWorkouts = ['Barbell Bent-Over Row', 'DB One-Arm Row', 'Barbell Reverse Grip Bent-Over Row']
+        self._shoulderWorkouts = ['DB Shoulder Press', 'DB Shrugs', 'DB Alt. Deltoid Raises']
+        self._armWorkouts = ['DB Concentration Curls', 'DB Hammer Curls', 'DB Seated Bent-over Tricep Exts.', 'Barbell Trciep Extensions']
+        self._coreWorkouts = ['Sit-ups', 'V-ups', 'Scissor Kicks']
+        self._legsWorkouts = ['Glute Kickbacks', 'DB Lunges', 'DB Seated Calf Raises']
+
+        # Input workout window.
         self._master = window
+
+        # Top Frame.
+        self._topFrame = tk.Frame(self._master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
+        self._topFont = font.Font(self._topFrame, family='TIMES', size=22, weight='bold', underline=True)
+        self._topLabel1 = tk.Label(self._topFrame, text='SELECT DATE', bg='gray25', fg='ivory', font=self._topFont)
+        self._topLabel1.pack(padx=18, pady=(14, 0), fill=tk.BOTH)
+        self._cal = Calendar(self._topFrame, selectmode='day', year=self.currentDate.year, month=self.currentDate.month, day=self.currentDate.day)
+        self._cal.config(firstweekday='sunday', showweeknumbers=False, foreground='firebrick4', background='ivory', selectforeground='orange', showothermonthdays=False)
+        self._cal.pack(padx=30, fill=tk.BOTH, expand=True)
+        self._topFont2 = font.Font(self._topFrame, family='TIMES', size=22, weight='bold', underline=True)
+        self._topLabel2 = tk.Label(self._topFrame, text=self._cal.selection_get(), bg='lightcyan', fg='gray25', font=self._topFont2)
+        self._topLabel2.pack(padx=18, pady=14, fill=tk.Y)
+        self._topFrame.pack(fill=tk.BOTH, padx=18, pady=8, expand=True)
+
+        # Middle Frame.
+        self._middleFrame = tk.Frame(self._master, relief='raised', bd=4, highlightbackground='gray30', bg='bisque')
+        self._middleFrame.grid_columnconfigure(0, weight=1)
+        self._middleFrame.grid_columnconfigure(1, weight=1)
+        self._middleFrame.grid_columnconfigure(2, weight=1)
+        self._middleFrame.grid_rowconfigure(0, weight=1)
+        self._middleFrame.grid_rowconfigure(1, weight=1)
+        self._middleFrame.grid_rowconfigure(2, weight=1)
+        self._middleFrame.grid_rowconfigure(3, weight=1)
+        self._label1 = tk.Label(self._middleFrame, text='1. SELECT BODY GROUP:', font='TIMESNEWROMAN 16 bold', bg='gray25', fg='ivory')
+        self._label1.grid(row=0, column=0, sticky='nsew', padx=8, pady=(12, 0))
+        self._selectedMuscleGroup = tk.StringVar()
+        self._muscleGroupSelector = tk.OptionMenu(self._middleFrame, self._selectedMuscleGroup, *self._muscleGroups, command=lambda cmd: updateWorkoutList())
+        self._muscleGroupSelector['menu'].config(font=('calibri', 20), relief='raised', bd=4)
+        self._selectedMuscleGroup.set('-')
+        self._muscleGroupSelector.grid(row=1, column=0, sticky='ew', padx=8)
+        self._label2 = tk.Label(self._middleFrame, text='2. SELECT WORKOUT:', font='TIMESNEWROMAN 16 bold', bg='gray25', fg='ivory', state='disabled')
+        self._label2.grid(row=2, column=0, sticky='ew', padx=8)
+        self._workout = tk.StringVar()
+        self._workoutSelector = tk.OptionMenu(self._middleFrame, self._workout, [], command=lambda cmd: updateSetRepBox())
+        self._workoutSelector['menu'].config(font=('calibri', 20), relief='raised', bd=4)
+        self._workoutSelector['state'] = 'disabled'
+        self._workout.set('-')
+        self._workoutSelector.grid(row=3, column=0, sticky='ew', padx=8, pady=(0, 12))
+        self._label3 = tk.Label(self._middleFrame, text='3. ENTER SETS/REPS:', font='TIMESNEWROMAN 16 bold', bg='gray25', fg='ivory', state='disabled')
+        self._label3.grid(row=0, column=1, sticky='nsew', padx=8, pady=(12, 0), columnspan=2)
+        self._setRepBox = tk.Listbox(self._middleFrame, state='disabled', bg='ivory')
+        self._setRepBox.grid(row=1, column=1, sticky='nsew', padx=8, pady=12, rowspan=1, columnspan=2)
+        self._repEntry_tkvar = tk.StringVar()
+        self._repEntry = tk.Entry(self._middleFrame, justify='center', font='HELVETICA 20 bold', text=self._repEntry_tkvar, state='disabled')
+        self._repEntry_tkvar.set('# Reps')
+        self._repEntry.grid(row=2, column=1, sticky='nsew', padx=8, pady=12, columnspan=1)
+        self._weightEntry_tkvar = tk.StringVar()
+        self._weightEntry = tk.Entry(self._middleFrame, justify='center', font='HELVETICA 20 bold', text=self._weightEntry_tkvar, state='disabled')
+        self._weightEntry_tkvar.set('Weight (lbs)')
+        self._weightEntry.grid(row=2, column=2, sticky='nsew', padx=8, pady=12)
+        self._addRow = tk.Button(self._middleFrame, text='(+) Set', font='HELVETICA 14 bold', highlightbackground='green')
+        self._addRow.config(state='disabled', command=lambda: addRows())
+        self._addRow.grid(row=3, column=2, sticky='nsew', padx=8, pady=8)
+        self._delRow = tk.Button(self._middleFrame, text='(-) Set', font='HELVETICA 14 bold', highlightbackground='indianred3')
+        self._delRow.config(state='disabled', command=lambda: delRows())
+        self._delRow.grid(row=3, column=1, sticky='nsew', padx=8, pady=8)
+        self._middleFrame.pack(fill=tk.BOTH, padx=18, pady=8, expand=True)
+
+        # Bottom Frame.
+        self._bottomFrame = tk.Frame(self._master, relief='raised', bd=4, highlightbackground='gray30', bg='gray25')
+        self._bottomFrame.grid_rowconfigure(0, weigh=1)
+        self._bottomFrame.grid_rowconfigure(1, weight=1)
+        self._bottomFrame.grid_columnconfigure(0, weight=1)
+        self._addButton = tk.Button(self._bottomFrame, text='INSERT', font='HELVETICA 16 bold')
+        self._addButton.config(highlightbackground='mediumaquamarine', fg='snow', relief='raised')
+        self._addButton.config(command=lambda: insertDocument(), state='disabled')
+        self._addButton.grid(row=0, column=0, sticky='nsew', padx=18, pady=4)
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 16 bold', command=lambda: back())
+        self._backButton.config(highlightbackground='indianred', fg='snow', relief='raised')
+        self._backButton.grid(row=1, column=0, sticky='nsew', padx=18, pady=4)
+        self._bottomFrame.pack(fill=tk.BOTH, padx=18, pady=8, expand=True)
+
+        # Input Workout window attributes.
+        self._master.title('RECORD WORKOUT')
+        self._master.config(bg='mediumpurple2')
+        self._master.bind('<<CalendarSelected>>', lambda cmd: self._master.after(1, self._topLabel2.config(text=self._cal.selection_get())))
+        self._repEntry.bind('<FocusIn>', repEntry_Focus)
+        self._repEntry.bind('<FocusOut>', repEntry_Focus)
+        self._weightEntry.bind('<FocusIn>', weightEntry_Focus)
+        self._weightEntry.bind('<FocusOut>', weightEntry_Focus)
+        self._master.minsize(750, 750)
         self._master.mainloop()
+
+    # Method allows user to view calories/desc trend for specific day, today, previous 7-days, or month.
     def viewCalories(self, window):
+
+        # Styling method for entry.
+        def specDayEntry_Focus(event):
+            if self._specDayEntry.get() == 'MM/DD/YYYY':
+                self._specDayEntry.delete(0, tk.END)
+                self._specDayEntry.insert(0, '')
+                self._specDayEntry.config(bg='powderblue', fg='gray25')
+            elif self._specDayEntry.get() == '':
+                self._specDayEntry.insert(0, 'MM/DD/YYYY')
+                self._specDayEntry.config(bg='lightblue3', fg='gray25')
+
+        # Function returns user's average calories intake for all entries within the db.
+        def averageCalories():
+            try:
+                self._dayTotal = 0.0
+                self._numEntries = self.calPerDay.estimated_document_count()
+                for self._records in self.calPerDay.find():
+                    self._dayTotal += self._records['amount']
+
+                self._averageCalories = self._dayTotal / self._numEntries
+                return round(self._averageCalories, 2)
+
+                # If no entries in the db.
+            except ZeroDivisionError:
+                return 0.0
+
+        # Back to main-menu.
+        def back():
+            self._master.destroy()
+            self._master.quit()
+            self._root = tk.Tk()
+            self.methodsScreen(self._root)
+            self._root.mainloop()
+
+        # Method binded to specific Day entry. Extract date from entry and view calories for that specific date.
+        def specDayEntryBind():
+            try:
+                self._grab = str(self._specDayEntry.get()).split('/')
+                self._enteredDate = datetime.datetime(int(self._grab[2]), int(self._grab[0]), int(self._grab[1])).strftime('%Y-%m-%d')
+                viewDay(1, self._enteredDate)
+
+            except (ValueError, IndexError) as e:
+
+                def close():
+                    self._valErrorWin.destroy()
+                    self._valErrorWin.quit()
+
+                self._valErrorWin = tk.Tk()
+
+                self._font1 = font.Font(family='TIMES NEW ROMAN', size=22, weight='bold')
+                self._label1 = tk.Label(self._valErrorWin, text='Couldn\'t process that date.\nPlease try again!', font=self._font1)
+                self._label1.pack(padx=20, fill=tk.BOTH, pady=10)
+
+                self._closeButton = tk.Button(self._valErrorWin, text='CLOSE', font='HELVETICA 18 bold', highlightbackground='gray40', fg='ivory')
+                self._closeButton.config(relief='raised', command=lambda: close())
+                self._closeButton.pack(fill=tk.X, padx=20, pady=10)
+
+                self._valErrorWin.title('ALERT!')
+                self._valErrorWin.minsize(300, 100)
+                self._valErrorWin.resizable(False, False)
+                self._valErrorWin.config(bg='indianred3')
+                self._valErrorWin.mainloop()
+
+        # View calories amount/descriptions for specific day. (If tag=0; View today, else tag=1, provide specific date).
+        def viewDay(tag, *args):
+
+            def back():
+                self._alpha.destroy()
+                self._alpha.quit()
+                self._root = tk.Tk()
+                self.viewCalories(self._root)
+                self._root.mainloop()
+
+            # View today.
+            if tag == 0:
+                self._date = datetime.datetime(self.currentDate.year, self.currentDate.month, self.currentDate.day).strftime('%Y-%m-%d')
+
+            # View specific date from supplied *arguments.
+            elif tag == 1:
+                self._args = []
+                for self._item in args:
+                    self._args.append(self._item)
+                self._date = self._args[0]
+
+            # Transition to next GUI.
+            self._master.destroy()
+            self._master.quit()
+
+            self._alpha = tk.Tk()
+
+            # Empty lists; To be filled with data from query result from db (done below).
+            self._calories = []
+            self._descriptions = []
+
+            # Fill empty arrays. calories[n] corresponds to descriptions[n].
+            for self._docs in self.calPerDay.find({'date': self._date}):
+                self._calories.append(self._docs['amount'])
+                self._descriptions.append(self._docs['desc'])
+
+            # Find total calories for the specified day.
+            self._totalCals = 0.0
+            for self._cals in self._calories:
+                self._totalCals += self._cals
+
+            # Display above information in window.
+            self._topFrame = tk.Frame(self._alpha, bg='gray25', bd=4, relief='ridge')
+            self._listBoxFont = font.Font(family='TIMES NEW ROMAN', size=18, weight='bold')
+            self._listBox = tk.Listbox(self._topFrame, bg='antiquewhite', font=self._listBoxFont, justify='center')
+            # Insert data into listbox.
+            self._descNum = 0
+            for self._index in range(0, len(self._calories)):
+                self._descNum += 1
+                if self._descriptions[self._index] != '':
+                    self._listBox.insert(tk.END, self._descriptions[self._index])
+                else:
+                    self._listBox.insert(tk.END, 'Item ' + str(self._descNum) + ":")
+                self._listBox.insert(tk.END, self._calories[self._index])
+            self._listBox.pack(padx=20, pady=(20, 5), fill=tk.BOTH)
+            # Add differing colors for desc. and amounts within the listbox.
+            for item in range(0, self._listBox.size()):
+                if item % 2 == 0:
+                    self._listBox.itemconfig(item, bg='lightpink3')
+            if self._listBox.size() == 0:
+                self._listBox.insert(0, 'NO DATA')
+                self._listBox.itemconfig(0, bg='indianred3', fg='ivory')
+
+            self._topFont = font.Font(family='TIMES NEW ROMAN', size=18, weight='bold')
+            self._topLabel = tk.Label(self._topFrame, text='Total Calories:', font=self._topFont, bg='steelblue1', relief='ridge')
+            self._topLabel.pack(padx=20, pady=(5, 5), fill=tk.BOTH)
+            self._totalCalLabel = tk.Label(self._topFrame, text=self._totalCals, font=self._topFont, relief='raised')
+            self._totalCalLabel.pack(padx=20, pady=(5, 20), fill=tk.BOTH)
+            self._topFrame.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+            self._bottomFrame = tk.Frame(self._alpha, bg='gray25', highlightbackground='ivory')
+            self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 20 bold', highlightbackground='indianred3')
+            self._backButton.config(command=lambda: back(), fg='ivory')
+            self._backButton.config(relief='raised')
+            self._backButton.pack(fill=tk.BOTH, padx=20, pady=20)
+            self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH)
+
+            self._alpha.minsize(400, 400)
+            self._alpha.config(bg='darkslateblue')
+            self._alpha.title(self._date)
+            self._alpha.mainloop()
+
+        def sevenDayForecast():
+            # Set pointer to today's date and work backwords.
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            self._day = self.currentDate.day
+
+            self._sevenDays = []
+            # Set initially to todays date, and add the previous 7 days into a list.
+            self._date = datetime.date(int(self._year), int(self._month), int(self._day))
+            for x in range(1, 8):
+                self._sevenDays.append(self._date.strftime('%Y-%m-%d'))
+                self._date += datetime.timedelta(days=-1)
+
+            # list to hold calories total calories for previous 7 days. (should have 7 elements @ end of exec.)
+            self._sevenDaycalories = []
+
+            # Fill calories list for last 7 days.
+            for self._dates in self._sevenDays:
+                self._dayTotal = 0.0
+                for self._calorie in self.calPerDay.find({'date': self._dates}):
+                    self._dayTotal += self._calorie['amount']
+                self._sevenDaycalories.append(self._dayTotal)
+
+            # Plot the trend.
+            self._ax = plt.axes()
+            plt.xlabel('Date:')
+            plt.ylabel('Calorie Amount:')
+            plt.title('Previous 7-Days:')
+            self._ax.xaxis.set_major_locator(plt.MultipleLocator(2))
+            self._ax.yaxis.set_major_locator(plt.MultipleLocator(500))
+            plt.scatter(self._sevenDays, self._sevenDaycalories, label='x', color='m', marker='o')
+            plt.plot(self._sevenDays, self._sevenDaycalories, '-o', color='k')
+            plt.gca().invert_xaxis()
+            fig = plt.gcf()
+            self._ax.set_facecolor('xkcd:sky')
+            plt.rcParams['figure.facecolor'] = 'white'
+            plt.ylim(0, 3750)
+            fig.canvas.set_window_title('7-Day Calories Forecast:')
+            plt.show()
+
+        def thirtyDayForecast():
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            self._day = self.currentDate.day
+
+            self._thirtyDays = []
+            self._date = datetime.date(int(self._year), int(self._month), int(self._day))
+            for x in range(1, 31):
+                self._thirtyDays.append(self._date.strftime('%Y-%m-%d'))
+                self._date += datetime.timedelta(days=-1)
+
+            self._thirtyDaycalories = []
+
+            # Fill calories list for last 30 days.
+            for self._dates in self._thirtyDays:
+                self._dayTotal = 0.0
+                for self._calorie in self.calPerDay.find({'date': self._dates}):
+                    self._dayTotal += self._calorie['amount']
+                self._thirtyDaycalories.append(self._dayTotal)
+
+            # Plot the trend.
+            self._ax = plt.axes()
+            plt.xlabel('Date:')
+            plt.ylabel('Calorie Amount:')
+            plt.title('Previous 30-Days:')
+            self._ax.xaxis.set_major_locator(plt.MultipleLocator(7))
+            self._ax.yaxis.set_major_locator(plt.MultipleLocator(500))
+            plt.scatter(self._thirtyDays, self._thirtyDaycalories, label='x', color='m', marker='o')
+            plt.plot(self._thirtyDays, self._thirtyDaycalories, '-o', color='k')
+            plt.gca().invert_xaxis()
+            fig = plt.gcf()
+            self._ax.set_facecolor('xkcd:sky')
+            plt.rcParams['figure.facecolor'] = 'white'
+            plt.ylim(0, 3750)
+            fig.canvas.set_window_title('30-Day Calories Forecast:')
+            plt.show()
+
+        # calPerDay Attributes.
+        self._amount = None
+        self._desc = None
+        self._date = None
+
+        # View Calories Window.
         self._master = window
+
+        # Top Frame.
+        self._tFborder = tk.Frame(self._master, bg='thistle1')
+        self._topFrame = tk.Frame(self._tFborder, bg='gray25')
+        self._topFrame.grid_rowconfigure(0, weight=1)
+        self._topFrame.grid_rowconfigure(1, weight=1)
+        self._topFrame.grid_rowconfigure(2, weight=1)
+        self._topFrame.grid_rowconfigure(3, weight=1)
+        self._topFrame.grid_rowconfigure(4, weight=1)
+        self._topFrame.grid_columnconfigure(0, weight=1)
+        self._todayStatButton = tk.Button(self._topFrame, text='TODAY\'S CALORIES', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._todayStatButton.config(command=lambda: viewDay(0))
+        self._todayStatButton.config(relief='raised', highlightthickness=4)
+        self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
+        self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: sevenDayForecast())
+        self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
+        self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last30DaysButton.config(relief='raised', highlightthickness=4, command=lambda: thirtyDayForecast())
+        self._last30DaysButton.config(relief='raised', highlightthickness=4)
+        self._last30DaysButton.grid(row=2, column=0, sticky='nsew', pady=5, padx=25)
+        self._topFont1 = font.Font(family='TIMES NEW ROMAN', size=16, weight='bold')
+        self._bottomLabel = tk.Label(self._topFrame, text='Average calories (per day):', fg='snow', bg='mediumpurple4', font=self._topFont1)
+        self._bottomLabel.config(relief='ridge', bd=6)
+        self._bottomLabel.grid(row=3, column=0, sticky='nsew', pady=5, padx=25)
+        self._topFont2 = font.Font(family='TIMES NEW ROMAN', size=20, weight='bold')
+        self._bottomLabel2 = tk.Label(self._topFrame, text=averageCalories(), fg='gray25', bg='lightskyblue2', font=self._topFont2)
+        self._bottomLabel2.config(relief='ridge', bd=4)
+        self._bottomLabel2.grid(row=4, column=0, sticky='ns', pady=(5, 20), padx=5)
+        self._topFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
+        self._tFborder.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+        # Bottom Frame.
+        self._bottomFrame = tk.Frame(self._master, bg='gray25')
+        self._bottomFont = font.Font(family='TIMES NEW ROMAN', size=16, weight='bold')
+        self._bottomLabel = tk.Label(self._bottomFrame, text='Search specific date:', font=self._bottomFont, bg='gray25', fg='ivory')
+        self._bottomLabel.pack(padx=25, fill=tk.BOTH, pady=(10, 2), expand=True)
+        self._specDayEntry = tk.Entry(self._bottomFrame, justify='center', bg='lightblue3', fg='gray25', font=self._bottomFont)
+        self._specDayEntry.insert(0, 'MM/DD/YYYY')
+        self._specDayEntry.pack(fill=tk.BOTH, expand=True, padx=25, pady=(2, 10))
+        self._searchButton = tk.Button(self._bottomFrame, text='SEARCH', font='HELVETICA 14 bold', highlightbackground='palegreen3')
+        self._searchButton.config(command=lambda: specDayEntryBind())
+        self._searchButton.config(relief='raised')
+        self._searchButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 14 bold', highlightbackground='brown3', fg='snow')
+        self._backButton.config(command=lambda: back())
+        self._backButton.config(relief='ridge')
+        self._backButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
+
+        # View Calories Window Attributes.
+        self._master.config(bg='seagreen3')
+        self._master.title('View Calories')
+        self._master.minsize(600, 500)
+        self._specDayEntry.bind('<FocusIn>', specDayEntry_Focus)
+        self._specDayEntry.bind('<FocusOut>', specDayEntry_Focus)
+        self._master.bind('<Return>', lambda cmd: specDayEntryBind())
         self._master.mainloop()
+
+    # Method allows user to view workout trends for specific day, today, previous 7-days, or month.
     def viewWorkout(self, window):
+
+        # Back to main-menu.
+        def back():
+            self._alpha.destroy()
+            self._alpha.quit()
+
+        # View Workout Window.
         self._master = window
+
+        self._tFborder = tk.Frame(self._master, bg='thistle1')
+        self._topFrame = tk.Frame(self._tFborder, bg='gray25')
+        self._topFrame.grid_rowconfigure(0, weight=1)
+        self._topFrame.grid_rowconfigure(1, weight=1)
+        self._topFrame.grid_rowconfigure(2, weight=1)
+        self._topFrame.grid_rowconfigure(3, weight=1)
+        self._topFrame.grid_rowconfigure(4, weight=1)
+        self._topFrame.grid_columnconfigure(0, weight=1)
+        self._todayStatButton = tk.Button(self._topFrame, text='TODAY\'S WORKOUT', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._todayStatButton.config(command=lambda: viewToday())
+        self._todayStatButton.config(relief='raised', highlightthickness=4)
+        self._todayStatButton.grid(row=0, column=0, sticky='nsew', pady=(20, 5), padx=25)
+        self._last7DaysButton = tk.Button(self._topFrame, text='LAST 7 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: sevenDayForcast())
+        self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
+        self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
+        self._last30DaysButton.config(relief='raised', highlightthickness=4, command=lambda: print(''))
+        self._last30DaysButton.config(relief='raised', highlightthickness=4)
+        self._last30DaysButton.grid(row=2, column=0, sticky='nsew', pady=5, padx=25)
+        self._topFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
+        self._tFborder.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
+
+        self._bottomFrame = tk.Frame(self._master, bg='gray25')
+        self._bottomFont = font.Font(family='TIMES NEW ROMAN', size=16, weight='bold')
+        self._bottomLabel = tk.Label(self._bottomFrame, text='Search specific date:', font=self._bottomFont, bg='gray25', fg='ivory')
+        self._bottomLabel.pack(padx=25, fill=tk.BOTH, pady=(10, 2), expand=True)
+        self._specDayEntry = tk.Entry(self._bottomFrame, justify='center', bg='lightblue3', fg='gray25', font=self._bottomFont)
+        self._specDayEntry.insert(0, 'MM/DD/YYYY')
+        self._specDayEntry.pack(fill=tk.BOTH, expand=True, padx=25, pady=(2, 10))
+        self._searchButton = tk.Button(self._bottomFrame, text='SEARCH', font='HELVETICA 14 bold', highlightbackground='palegreen3')
+        self._searchButton.config(command=lambda: specDayEntryBind())
+        self._searchButton.config(relief='raised')
+        self._searchButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._backButton = tk.Button(self._bottomFrame, text='BACK', font='HELVETICA 14 bold', highlightbackground='brown3', fg='snow')
+        self._backButton.config(command=lambda: back())
+        self._backButton.config(relief='ridge')
+        self._backButton.pack(padx=25, pady=10, fill=tk.BOTH, expand=True)
+        self._bottomFrame.pack(padx=20, pady=(10, 20), fill=tk.BOTH, expand=True)
+
+        # View Workout Window attributes.
+        self._master.config(bg='mediumpurple3')
+        self._master.title('View Workout')
+        self._master.minsize(600, 500)
+        self._specDayEntry.bind('<FocusIn>', specDayEntry_Focus)
+        self._specDayEntry.bind('<FocusOut>', specDayEntry_Focus)
+        self._master.bind('<Return>', lambda cmd: specDayEntryBind())
         self._master.mainloop()
 
 # Execute Program.

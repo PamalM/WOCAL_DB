@@ -1185,9 +1185,38 @@ class WoCal:
             # User can view graph trend for specific workout for previous 7 days.
             # I choose to display each workout individually rather than scattering everything into one graph so its easier to read.
             def viewTrend():
+                # Get selected workout.
                 self._selectedWorkout = self._listbox.get(self._listbox.curselection())
 
+                # Each date will have a list of reps/weights that correspond for that workout.
+                self._dateLog = {'dates': [], 'reps': [], 'sets': []}
+
+                self._reps = []
+                self._weights = []
+                self._dates = []
+
+                # Filter results specifically for this workout only.
+                for self._stat in self._workouts:
+                    if self._stat['workout'].upper() == self._selectedWorkout:
+                        for self._rep in self._stat['reps']:
+                            self._reps.append(self._rep)
+                            self._dateMsg = ''
+                            for self._date in self._stat['date']:
+                                self._dateMsg += self._date
+                            self._dates.append(self._dateMsg)
+                        for self._weight in self._stat['weight']:
+                            self._weights.append(self._weight)
+                        self._dateLog = {'date': self._dates, 'reps': self._reps, 'weights': self._weights}
+
+                print(self._dateLog.get('date'))
+                print(self._dateLog.get('reps'))
+
                 self._alpha.after(1, self._alpha.update())
+
+                # Plot the information collected above.
+                plt.scatter(self._dateLog.get('date'), self._dateLog.get('reps'))
+                plt.show()
+
 
             # Set pointer to today's date and work backwards.
             self._year = self.currentDate.year

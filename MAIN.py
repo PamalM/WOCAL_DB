@@ -8,6 +8,7 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from pymongo.errors import OperationFailure
 import matplotlib.pyplot as plt
+from scipy import stats
 
 
 # Class is utilized to provide typography and color to console/terminal messages.
@@ -1184,7 +1185,13 @@ class WoCal:
 
             # User can view graph trend for specific workout for previous 7 days.
             # I choose to display each workout individually rather than scattering everything into one graph so its easier to read.
+            # Method also displays linear regression between reps/weights relationship. 
             def viewTrend():
+
+                # Function returns the slope*x*int.
+                def mappingFunc(val):
+                    return slope * x + intercept
+
                 # Get selected workout.
                 self._selectedWorkout = self._listbox.get(self._listbox.curselection())
 
@@ -1208,15 +1215,33 @@ class WoCal:
                             self._weights.append(self._weight)
                         self._dateLog = {'date': self._dates, 'reps': self._reps, 'weights': self._weights}
 
-                print(self._dateLog.get('date'))
-                print(self._dateLog.get('reps'))
-
                 self._alpha.after(1, self._alpha.update())
 
-                # Plot the information collected above.
-                plt.scatter(self._dateLog.get('date'), self._dateLog.get('reps'))
-                plt.show()
+                fig, (ax1, ax2) = plt.subplots(1, 2)
+                ax1.plot(self._dateLog.get('date'), self._dateLog.get('reps'), label='x', color='m', marker='o')
+                ax1.set_title('reps per day:')
+                ax2.scatter(self._dateLog.get('weights'), self._dateLog.get('reps'), label='x', color='m', marker='o')
+                ax2.set_title('reps per weight')
 
+                # Plot a linear regression on the reps/weights relationship.
+                slope, intercept, r, p, std_err = stats.linregress(self._dateLog.get('weights'), self._dateLog.get('reps'))
+                model = list(map(mappingFunc, self._dateLog.get('weights')))
+                ax2.plot(self._dateLog.get('weights'), model)
+
+                ax1.invert_xaxis()
+                ax1.xaxis.set_major_locator(plt.MultipleLocator(2))
+                ax1.yaxis.set_major_locator(plt.MultipleLocator(6))
+                ax2.xaxis.set_major_locator(plt.MultipleLocator(10))
+                ax2.yaxis.set_major_locator(plt.MultipleLocator(6))
+                ax1.set_ylim([0, 31])
+                ax2.set_ylim([0, 31])
+                ax2.set_xlim([0, 120])
+                ax1.set_ylabel('# reps:', fontsize=14)
+                ax2.set_ylabel('# reps:', fontsize=14)
+                ax1.set_xlabel('Dates: ', fontsize=14)
+                ax2.set_xlabel('Weight (lbs):', fontsize=14)
+                fig.canvas.set_window_title('{0}'.format(self._selectedWorkout))
+                plt.show()
 
             # Set pointer to today's date and work backwards.
             self._year = self.currentDate.year

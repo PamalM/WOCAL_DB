@@ -9,6 +9,7 @@ Like most of us, when i'm working out i'm looking for results and improvement! I
 With this project I focused on utilizing Python Tkinter, matplotlib and pymongo libraries. By working on this project, I have gained a better understanding for MongoDB, making/pulling query results, and optimizing my code using branches. 
 
 *Sign-up for an account:*
+
 In addition, if your interested in signing up for access to the DB server to track your own applications, please feel free to contact and I would be happy to set you up with your own account to sign in! 
 
 Thanks for stopping by my repo!

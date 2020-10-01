@@ -1,3 +1,7 @@
+# Pamal Mangat 
+# WoCal_DB V1.0.0 
+# Sep 30, 2020. 
+
 import datetime
 import os
 from platform import system

@@ -1185,7 +1185,7 @@ class WoCal:
 
             # User can view graph trend for specific workout for previous 7 days.
             # I choose to display each workout individually rather than scattering everything into one graph so its easier to read.
-            # Method also displays linear regression between reps/weights relationship. 
+            # Method also displays linear regression between reps/weights relationship.
             def viewTrend():
 
                 # Function returns the slope*x*int.
@@ -1220,7 +1220,7 @@ class WoCal:
                 fig, (ax1, ax2) = plt.subplots(1, 2)
                 ax1.plot(self._dateLog.get('date'), self._dateLog.get('reps'), label='x', color='m', marker='o')
                 ax1.set_title('reps per day:')
-                ax2.scatter(self._dateLog.get('weights'), self._dateLog.get('reps'), label='x', color='m', marker='o')
+                ax2.scatter(self._dateLog.get('weights'), self._dateLog.get('reps'), label='x', color='c', marker='o')
                 ax2.set_title('reps per weight')
 
                 # Plot a linear regression on the reps/weights relationship.
@@ -1241,6 +1241,8 @@ class WoCal:
                 ax1.set_xlabel('Dates: ', fontsize=14)
                 ax2.set_xlabel('Weight (lbs):', fontsize=14)
                 fig.canvas.set_window_title('{0}'.format(self._selectedWorkout))
+                ax1.set_facecolor('xkcd:sky')
+                ax2.set_facecolor('xkcd:blue')
                 plt.show()
 
             # Set pointer to today's date and work backwards.
@@ -1288,6 +1290,121 @@ class WoCal:
             self._alpha.minsize(400, 400)
             self._alpha.mainloop()
 
+        # View workout trend for previous 7-days.
+        def thirtyDayForcast():
+
+            # Back to View workout window.
+            def closeWindow():
+                self._alpha.destroy()
+                self._alpha.quit()
+
+            # User can view graph trend for specific workout for previous 30 days.
+            # I choose to display each workout individually rather than scattering everything into one graph so its easier to read.
+            # Method also displays linear regression between reps/weights relationship.
+            def viewTrend():
+
+                # Function returns the slope*x*int.
+                def mappingFunc(val):
+                    return slope * x + intercept
+
+                # Get selected workout.
+                self._selectedWorkout = self._listbox.get(self._listbox.curselection())
+
+                # Each date will have a list of reps/weights that correspond for that workout.
+                self._dateLog = {'dates': [], 'reps': [], 'sets': []}
+
+                self._reps = []
+                self._weights = []
+                self._dates = []
+
+                # Filter results specifically for this workout only.
+                for self._stat in self._workouts:
+                    if self._stat['workout'].upper() == self._selectedWorkout:
+                        for self._rep in self._stat['reps']:
+                            self._reps.append(self._rep)
+                            self._dateMsg = ''
+                            for self._date in self._stat['date']:
+                                self._dateMsg += self._date
+                            self._dates.append(self._dateMsg)
+                        for self._weight in self._stat['weight']:
+                            self._weights.append(self._weight)
+                        self._dateLog = {'date': self._dates, 'reps': self._reps, 'weights': self._weights}
+
+                self._alpha.after(1, self._alpha.update())
+
+                fig, (ax1, ax2) = plt.subplots(1, 2)
+                ax1.plot(self._dateLog.get('date'), self._dateLog.get('reps'), label='x', color='m', marker='o')
+                ax1.set_title('reps per day:')
+                ax2.scatter(self._dateLog.get('weights'), self._dateLog.get('reps'), label='x', color='c', marker='o')
+                ax2.set_title('reps per weight')
+
+                # Plot a linear regression on the reps/weights relationship.
+                slope, intercept, r, p, std_err = stats.linregress(self._dateLog.get('weights'), self._dateLog.get('reps'))
+                model = list(map(mappingFunc, self._dateLog.get('weights')))
+                ax2.plot(self._dateLog.get('weights'), model)
+
+                ax1.invert_xaxis()
+                ax1.xaxis.set_major_locator(plt.MultipleLocator(8))
+                ax1.yaxis.set_major_locator(plt.MultipleLocator(6))
+                ax2.xaxis.set_major_locator(plt.MultipleLocator(10))
+                ax2.yaxis.set_major_locator(plt.MultipleLocator(6))
+                ax1.set_ylim([0, 31])
+                ax2.set_ylim([0, 31])
+                ax2.set_xlim([0, 120])
+                ax1.set_ylabel('# reps:', fontsize=14)
+                ax2.set_ylabel('# reps:', fontsize=14)
+                ax1.set_xlabel('Dates: ', fontsize=14)
+                ax2.set_xlabel('Weight (lbs):', fontsize=14)
+                fig.canvas.set_window_title('{0}'.format(self._selectedWorkout))
+                ax1.set_facecolor('xkcd:sky')
+                ax2.set_facecolor('xkcd:blue')
+                plt.show()
+
+            # Set pointer to today's date and work backwards.
+            self._year = self.currentDate.year
+            self._month = self.currentDate.month
+            self._day = self.currentDate.day
+
+            # Populate workouts list with previous 7 days of workouts.
+            self._thirtyDays = []
+            self._date = datetime.date(int(self._year), int(self._month), int(self._day))
+            for x in range(1, 31):
+                self._thirtyDays.append(self._date.strftime('%Y-%m-%d'))
+                self._date += datetime.timedelta(days=-1)
+            for self._day in self._thirtyDays:
+                for self._doc in self.workoutPerDay.find({'date': self._day}):
+                    self._workout = {'date': self._day, 'muscleGroup': self._doc['muscleGroup'], 'workout': self._doc['workout'],
+                                     'sets': self._doc['sets'], 'reps': self._doc['reps'], 'weight': self._doc['weight']}
+                    self._workouts.append(self._workout)
+
+            # 7 day forecast window.
+            self._alpha = tk.Tk()
+
+            self._topFrame = tk.Frame(self._alpha, bg='gray25')
+            self._topLabel = tk.Label(self._topFrame, text='Select specific workout to view trend for:', font='HELVETICA 20 bold', bg='gray25', fg='mediumseagreen')
+            self._topLabel.pack(fill=tk.X, padx=30, pady=(10, 4), expand=True)
+            self._listbox = tk.Listbox(self._topFrame, font='TIMES 20 bold', justify='center', selectmode=tk.SINGLE)
+            self._listbox.pack(fill=tk.BOTH, padx=20, pady=10, expand=True)
+            # Fill listbox with data above. (Make sure to only show unique workouts, no duplicates)
+            self._uniqueWorkouts = []
+            for self._workout in self._workouts:
+                self._uniqueWorkouts.append(self._workout['workout'])
+            self._uniqueWorkouts = list(set(self._uniqueWorkouts))
+            for self._workout in self._uniqueWorkouts:
+                self._listbox.insert(tk.END, self._workout.upper())
+
+            self._closeButton = tk.Button(self._topFrame, text='Close', highlightbackground='indianred', fg='ivory', font='HELVETICA 20 bold')
+            self._closeButton.config(command=lambda: closeWindow(), relief='raised')
+            self._closeButton.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+            self._topFrame.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
+
+            # 7 day forecase window attributes.
+            self._alpha.config(bg='lightskyblue1')
+            self._listbox.bind("<<ListboxSelect>>", lambda cmd: viewTrend())
+            self._alpha.title('Last 30 Days:')
+            self._alpha.minsize(400, 400)
+            self._alpha.mainloop()
+
         # workoutPerDay attributes.
         self._workout = {'date': '', 'muscleGroup': '', 'workout': '', 'sets': [], 'reps': [], 'weight': []}
         # Empty list will hold all the workouts that are returned in the query.
@@ -1312,8 +1429,7 @@ class WoCal:
         self._last7DaysButton.config(relief='raised', highlightthickness=4, command=lambda: sevenDayForcast())
         self._last7DaysButton.grid(row=1, column=0, sticky='nsew', pady=5, padx=25)
         self._last30DaysButton = tk.Button(self._topFrame, text='LAST 30 DAYS', font='HELVETICA 22 bold', highlightbackground='lightslateblue', fg='snow')
-        self._last30DaysButton.config(relief='raised', highlightthickness=4, command=lambda: print(''))
-        self._last30DaysButton.config(relief='raised', highlightthickness=4)
+        self._last30DaysButton.config(relief='raised', highlightthickness=4, command=lambda: thirtyDayForcast())
         self._last30DaysButton.grid(row=2, column=0, sticky='nsew', pady=5, padx=25)
         self._topFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
         self._tFborder.pack(padx=20, pady=(20, 10), fill=tk.BOTH, expand=True)
